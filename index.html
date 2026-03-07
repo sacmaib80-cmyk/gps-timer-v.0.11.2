@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>QPS Timer v0.7.0</title>
+    <title>QPS Timer v0.7.1</title>
 
     <style>
       :root{
@@ -20,7 +20,6 @@
         --gold:#f59e0b;
 
         --border: rgba(15,23,42,.12);
-        --shadow: 0 12px 28px rgba(2,6,23,.10);
 
         --r:16px;
         --r2:22px;
@@ -60,9 +59,6 @@
         position: relative;
       }
       .container{ max-width: 860px; margin: 0 auto; }
-/* =========================
-   TOPBAR REBUILD v2
-========================= */
 
 /* =========================
    TOPBAR CLEAN v3
@@ -278,6 +274,129 @@
 
   .topNav{
     width: 100%;
+  }
+}
+/* =========================
+   TOP MENU DROPDOWN
+========================= */
+
+.topTools{
+  position: relative;
+}
+
+.topMenuBackdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.22);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+  z-index: 70;
+}
+
+.topMenuBackdrop.show{
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.topMenu{
+  position: fixed;
+  top: 74px;
+  right: 18px;
+  width: min(280px, calc(100vw - 24px));
+  padding: 8px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.94);
+  border: 1px solid rgba(15,23,42,.08);
+  box-shadow:
+    0 20px 40px rgba(15,23,42,.16),
+    inset 0 1px 0 rgba(255,255,255,.7);
+
+  opacity: 0;
+  transform: translateY(-8px) scale(.98);
+  pointer-events: none;
+  transition:
+    opacity .18s ease,
+    transform .18s ease;
+
+  z-index: 80;
+}
+
+.topMenu.show{
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.topMenuItem{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 12px 13px;
+  border-radius: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+  text-align: left;
+}
+
+.topMenuItem:hover{
+  background: rgba(15,23,42,.05);
+}
+
+.topMenuItemLabel{
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.topMenuItemTitle{
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.topMenuItemSub{
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.topMenuItemRight{
+  flex: 0 0 auto;
+  min-width: 44px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15,23,42,.06);
+  border: 1px solid rgba(15,23,42,.08);
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.topMenuItemRight.on{
+  background: rgba(34,197,94,.14);
+  border-color: rgba(34,197,94,.26);
+  color: #166534;
+}
+
+@media (max-width:640px){
+  .topMenu{
+    top: 70px;
+    right: 12px;
+    width: calc(100vw - 24px);
   }
 }
       .section{ margin-top: 12px; scroll-margin-top: 110px; }
@@ -1136,109 +1255,134 @@
   --gate-soft:  rgba(11,18,32,.06);
 }
 
-/* overlay */
 #gatePage{
   position: fixed;
   inset: 0;
   z-index: 9999;
   display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
   background:
-    radial-gradient(1200px 700px at 50% 40%, rgba(255,59,48,.22), transparent 60%),
-    radial-gradient(900px 600px at 65% 55%, rgba(255,122,0,.20), transparent 62%),
-    rgba(0,0,0,.55);
-  backdrop-filter: blur(7px);
+    radial-gradient(1200px 700px at 50% 40%, rgba(255,59,48,.16), transparent 60%),
+    radial-gradient(900px 600px at 65% 55%, rgba(255,122,0,.12), transparent 62%),
+    rgba(0,0,0,.50);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-/* optional show class (if you ever use it) */
-#gatePage.show{ display:block; }
+#gatePage.show{
+  display: flex;
+}
 
-/* prevent weird stretch */
-#gatePage *{ box-sizing:border-box; }
-
-/* modal card */
 #gatePage .gateModal{
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%,-50%) scale(.985);
-  width: min(720px, calc(100vw - 22px));
-  max-height: calc(100vh - 22px);
-  overflow: auto;
-
+  position: relative;
+  width: min(720px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
   background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.95));
-  border-radius: 20px;
+  border-radius: 22px;
   box-shadow:
     0 24px 80px rgba(0,0,0,.35),
     0 0 0 1px rgba(255,255,255,.55) inset;
   animation: gatePop .22s ease-out both;
 }
 
-/* opening animation */
-@keyframes gatePop{
-  from{ opacity:0; transform: translate(-50%,-52%) scale(.965); filter: blur(2px); }
-  to{ opacity:1; transform: translate(-50%,-50%) scale(1); filter: blur(0); }
-}
-
-/* top "heat line" */
 #gatePage .gateModal::before{
   content:"";
   position:absolute;
-  left: 14px; right: 14px; top: 12px;
-  height: 6px;
+  left: 14px;
+  right: 14px;
+  top: 8px;
+  height: 5px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--gate-fire1), var(--gate-fire2));
+background: linear-gradient(
+90deg,
+#ff3b30,
+#ff7a00,
+#ffb347,
+#ff7a00,
+#ff3b30
+);
+background-size: 200% 100%;
   box-shadow:
-    0 0 18px rgba(255,59,48,.35),
-    0 0 26px rgba(255,122,0,.30);
+    0 0 14px rgba(255,59,48,.28),
+    0 0 22px rgba(255,122,0,.20);
+  animation: gateFireFlow 3.2s linear infinite;
 }
 
-/* padding areas */
 #gatePage .gateHeader,
 #gatePage .gateBody,
-#gatePage .gateFooter{ padding: 16px; }
+#gatePage .gateFooter{
+  padding: 16px;
+}
 
 #gatePage .gateHeader{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
+  padding-top: 22px;
+  padding-bottom: 12px;
+}
+@keyframes gateFireFlow{
+  0%{
+    background-position: 0% 50%;
+  }
+  100%{
+    background-position: 200% 50%;
+  }
+}
+#gatePage .gateBody{
+  display: grid;
   gap: 14px;
-  padding-top: 28px; /* เว้นที่ให้ heat line */
-  border-bottom: 1px solid rgba(0,0,0,.08);
+  margin-top: 4px;
 }
-
-/* title bigger & bolder */
-#gatePage .gateTitle{
-  font-weight: 900;
-  font-size: 18px;
-  letter-spacing: .2px;
-  color: var(--gate-ink);
-}
-#gatePage .gateSub{
-  margin-top: 6px;
+.gateSub{
   font-size: 13px;
-  line-height: 1.35;
-  color: rgba(11,18,32,.72);
+  color: rgba(15,23,42,.65);
+  margin-top: 2px;
+}
+.gateTitle{
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: .2px;
+
+  background: linear-gradient(90deg,#ff3b30,#ff7a00,#ffb347);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.gateTitle{
+  text-shadow: 0 0 18px rgba(255,90,40,.25);
+}
+#gatePage .gateBody{
+  display: grid;
+  gap: 12px;
 }
 
-/* close X — bigger & not faded */
-#gatePage #gatePageCloseBtn{
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(0,0,0,.10);
-  background: rgba(11,18,32,.06);
-  border-radius: 14px;
-  cursor: pointer;
-  font-size: 20px;
-  line-height: 1;
-  color: rgba(11,18,32,.88);
-  transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
+#gatePage .gateFooter{
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(0,0,0,.08);
 }
+
+#gatePage #gatePageCloseBtn{
+  padding: 11px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,59,48,.25);
+  background: linear-gradient(90deg, rgba(255,59,48,.12), rgba(255,122,0,.10));
+  font-weight: 900;
+  color: rgba(11,18,32,.92);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
 #gatePage #gatePageCloseBtn:hover{
-  background: rgba(11,18,32,.10);
-  box-shadow: 0 10px 22px rgba(0,0,0,.16);
+  box-shadow: 0 14px 28px rgba(255,59,48,.16);
   transform: translateY(-1px);
 }
-#gatePage #gatePageCloseBtn:active{ transform: translateY(0px) scale(.98); }
+
+#gatePage #gatePageCloseBtn:active{
+  transform: translateY(0) scale(.99);
+}
 
 /* body */
 #gatePage .gateBody{
@@ -1385,11 +1529,12 @@
   cursor:pointer;
   transition: transform .12s ease, box-shadow .12s ease;
 }
-#gatePage #gatePageCloseBtn2:hover{
+#gatePage #gatePageCloseBtn:hover{
   box-shadow: 0 14px 28px rgba(255,59,48,.16);
   transform: translateY(-1px);
 }
-#gatePage #gatePageCloseBtn2:active{ transform: translateY(0) scale(.99); }
+#gatePage #gatePageCloseBtn:active{ transform: translateY(0) scale(.99); }
+
 
 /* mobile: stack */
 @media (max-width: 560px){
@@ -1399,6 +1544,8 @@
   #gatePage .pillSwitch{ width: 100%; }
   #gatePage .gateTitle{ font-size: 17px; }
 }
+
+
 .diceFab{
   bottom: calc(110px + env(safe-area-inset-bottom, 0px)) !important;
   right:  calc(12px + env(safe-area-inset-right, 0px)) !important;
@@ -1507,14 +1654,13 @@
           <div class="brandMeta">
             <div class="brandTitleRow">
               <h1>QPS Timer</h1>
-              <span class="versionBadge">v0.7.0</span>
+              <span class="versionBadge">v0.7.1</span>
             </div>
             <div class="sub" id="todayText">Today: ----</div>
           </div>
         </div>
 
         <div class="topTools">
-          <button class="miniGateBtn" id="gateToggleBtn" type="button">Gate</button>
 
   <div class="miniStreak" id="streakPill">
   <span class="fire">🔥</span>
@@ -1530,11 +1676,30 @@
         <button class="navBtn active" type="button" onclick="scrollToId('sec-timer')">Timer</button>
         <button class="navBtn" type="button" onclick="scrollToId('sec-today')">Today</button>
         <button class="navBtn" type="button" onclick="scrollToId('sec-report')">Report</button>
-        <button class="navBtn" type="button" id="openOnboardBtn">Guide</button>
       </div>
     </div>
+    <!-- TOPBAR MENU -->
+<div class="topMenuBackdrop" id="topMenuBackdrop"></div>
+
+<div class="topMenu" id="topMenu" aria-hidden="true">
+  <button class="topMenuItem" type="button" id="topMenuGateBtn">
+    <span class="topMenuItemLabel">
+      <span class="topMenuItemTitle">Morning Gate</span>
+      <span class="topMenuItemSub">ตั้งค่า / เปิด / ปิด</span>
+    </span>
+    <span class="topMenuItemRight" id="topMenuGateState">OFF</span>
+  </button>
+
+  <button class="topMenuItem" type="button" id="topMenuGuideBtn">
+    <span class="topMenuItemLabel">
+      <span class="topMenuItemTitle">Guide</span>
+      <span class="topMenuItemSub">วิธีใช้งานแอป</span>
+    </span>
+  </button>
+</div>
   </div>
 </div>
+
         <!-- TIMER -->
         <div class="section" id="sec-timer">
           <div class="sectionHead">
@@ -1823,7 +1988,7 @@
   Required IDs for new JS:
   gatePage, gatePageCloseBtn, gatePageEnableBtn, gatePageTriggerInput, gatePageHint
 ========================= -->
-<div id="gatePage" class="overlay gatePage" aria-hidden="true" style="display:none;">
+<div id="gatePage" class="overlay gatePage" aria-hidden="true">
   <div class="gateModal" role="dialog" aria-modal="true" aria-labelledby="gatePageTitle">
     
     <!-- Header -->
@@ -1875,7 +2040,7 @@
 
     <!-- Footer -->
     <div class="gateFooter">
-      <button id="gatePageCloseBtn2" class="btn" type="button">Close</button>
+      <button id="gatePageCloseBtn" class="btn" type="button">Close</button>
     </div>
 
   </div>
@@ -2182,6 +2347,7 @@ function renderStreak(){
     ELEMENTS
   ========================= */
   const el = {
+ 
     appScroll: $("appScroll"),
 
     todayText: $("todayText"),
@@ -2189,7 +2355,7 @@ function renderStreak(){
     streakPill: $("streakPill"),
 
     // top-right button (ONLY entry to Gate Page)
-    gateToggleBtn: $("gateToggleBtn"),
+  
 
     category: $("category"),
     questName: $("questName"),
@@ -2296,6 +2462,13 @@ function renderStreak(){
     rqMeta2: $("rqMeta2"),
     rqStartNow2: $("rqStartNow2"),
     rqClear2: $("rqClear2"),
+
+        topMenuBtn: $("topMenuBtn"),
+    topMenu: $("topMenu"),
+    topMenuBackdrop: $("topMenuBackdrop"),
+    topMenuGateBtn: $("topMenuGateBtn"),
+    topMenuGateState: $("topMenuGateState"),
+    topMenuGuideBtn: $("topMenuGuideBtn"),
   };
 
   /* =========================
@@ -2738,15 +2911,14 @@ function renderStreak(){
   }
 
   /* old pill text (top right) */
-  function renderGateTogglePill(){
-    if(!el.gateToggleBtn) return;
-    const canOn = !!gateCfg.triggerHHMM;
-    const onNow = gateCfg.enabled && canOn;
-    el.gateToggleBtn.textContent = onNow ? "ON" : "OFF";
-    el.gateToggleBtn.classList.toggle("on", onNow);
-    el.gateToggleBtn.disabled = (state.status !== "idle"); // still lock while running
-  }
+ function renderGateTogglePill(){
+  if(!el.topMenuGateState) return;
 
+  const canOn = !!gateCfg.triggerHHMM;
+  const onNow = gateCfg.enabled && canOn;
+
+  el.topMenuGateState.textContent = onNow ? "ON" : "OFF";
+}
   /* master UX (cover/topbar) */
   function renderGateUX(){
     renderGateCoverDisplay();
@@ -2848,7 +3020,34 @@ function renderStreak(){
     if(el.gateTopSub) el.gateTopSub.textContent = "เริ่มเควสแรกให้ทันก่อนหมดเวลา";
     if(el.gateTopOpenBtn) el.gateTopOpenBtn.textContent = "Gate";
   }
+function openTopMenu(){
+  if(!el.topMenu || !el.topMenuBackdrop) return;
+  el.topMenu.classList.add("show");
+  el.topMenuBackdrop.classList.add("show");
+  el.topMenu.setAttribute("aria-hidden", "false");
+}
 
+function closeTopMenu(){
+  if(!el.topMenu || !el.topMenuBackdrop) return;
+  el.topMenu.classList.remove("show");
+  el.topMenuBackdrop.classList.remove("show");
+  el.topMenu.setAttribute("aria-hidden", "true");
+}
+
+function toggleTopMenu(){
+  if(!el.topMenu) return;
+  if(el.topMenu.classList.contains("show")) closeTopMenu();
+  else openTopMenu();
+}
+
+function renderTopMenuUI(){
+  if(!el.topMenuGateState) return;
+  const canOn = !!gateCfg.triggerHHMM;
+  const onNow = gateCfg.enabled && canOn;
+
+  el.topMenuGateState.textContent = onNow ? "ON" : "OFF";
+  el.topMenuGateState.classList.toggle("on", onNow);
+}
   /* =========================
     UI HELPERS
   ========================= */
@@ -3012,7 +3211,8 @@ function renderStreak(){
     renderToday();
     setReportVisible(state.status==="stopped");
     renderUndoRedo();
-    renderGatePageUI(); // if gate page exists
+    renderGatePageUI();
+    renderTopMenuUI(); // if gate page exists
   }
 
   /* =========================
@@ -3949,6 +4149,33 @@ function clearReportDraft(){
   /* =========================
     EVENTS
   ========================= */
+    // top menu
+  on(el.topMenuBtn, "click", (e)=>{
+    e.stopPropagation();
+    toggleTopMenu();
+  });
+
+  on(el.topMenuBackdrop, "click", closeTopMenu);
+
+  on(el.topMenu, "click", (e)=>{
+    e.stopPropagation();
+  });
+
+  on(el.topMenuGateBtn, "click", ()=>{
+    closeTopMenu();
+
+    if(state.status !== "idle"){
+      showTimerWarn("เข้า Gate ได้ตอน Idle เท่านั้น");
+      return;
+    }
+    openGatePage();
+  });
+  
+
+  on(el.topMenuGuideBtn, "click", ()=>{
+    closeTopMenu();
+    openOnboarding();
+  });
   // timer buttons
   on(el.startBtn, "click", startQuest);
   on(el.pauseBtn, "click", pauseQuest);
@@ -4048,11 +4275,17 @@ on(el.notes, "input", saveReportDraft);
     });
   });
   on(el.tipCloseBtn, "click", hideTooltip);
-  on(document, "click", (e)=>{
+   on(document, "click", (e)=>{
     if(el.tooltip?.classList.contains("show")){
       const t = el.tooltip.contains(e.target);
       const hb = e.target.classList && e.target.classList.contains("helpBtn");
       if(!t && !hb) hideTooltip();
+    }
+
+    if(el.topMenu?.classList.contains("show")){
+      const inMenu = el.topMenu.contains(e.target);
+      const isMenuBtn = e.target.closest && e.target.closest("#topMenuBtn");
+      if(!inMenu && !isMenuBtn) closeTopMenu();
     }
   });
   on(el.appScroll, "scroll", ()=>{ if(el.tooltip?.classList.contains("show")) hideTooltip(); }, { passive:true });
@@ -4096,13 +4329,6 @@ on(el.notes, "input", saveReportDraft);
 
   /* ===== Gate Page events (NEW) ===== */
   // Open Gate Page ONLY from top-right button
-  on(el.gateToggleBtn, "click", ()=>{
-    if(state.status !== "idle"){
-      showTimerWarn("เข้า Gate ได้ตอน Idle เท่านั้น");
-      return;
-    }
-    openGatePage();
-  });
 
   // Close Gate Page
   on(el.gatePageCloseBtn, "click", closeGatePage);
@@ -4206,6 +4432,13 @@ on(el.notes, "input", saveReportDraft);
     rqClearSelected();
     rqTickUI();
   });
+  on(window, "keydown", (e)=>{
+  if(e.key === "Escape"){
+    closeTopMenu();
+    closeGatePage();
+    hideTooltip();
+  }
+});
 
   /* =========================
     BACKGROUND FIX
@@ -4269,54 +4502,6 @@ on(el.notes, "input", saveReportDraft);
   }
   boot();
 
-  (() => {
-    const btn = document.getElementById("gateToggleBtn"); // ปุ่มบนหัว
-    const page = document.getElementById("gatePage");     // overlay
-    const close2 = document.getElementById("gatePageCloseBtn2");
-
-    if(!btn) console.warn("❌ ไม่เจอ #gateToggleBtn");
-    if(!page) console.warn("❌ ไม่เจอ #gatePage");
-
-    function openGatePage(){
-      if(!page) return;
-      page.style.display = "block";
-      page.classList.add("show");
-      page.setAttribute("aria-hidden","false");
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeGatePage(){
-      if(!page) return;
-      page.classList.remove("show");
-      page.style.display = "none";
-      page.setAttribute("aria-hidden","true");
-      document.body.style.overflow = "";
-    }
-
-    // กดปุ่มบนหัว = เปิดหน้า Gate (ไม่ต้อง toggle ON/OFF ตอนนี้ แค่เปิดหน้า)
-    if(btn){
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        openGatePage();
-      });
-    }
-
-    // ปุ่มปิด
-    
-    if(close2) close2.addEventListener("click", closeGatePage);
-
-    // คลิกพื้นที่มืดนอก modal = ปิด
-    if(page){
-      page.addEventListener("click", (e) => {
-        if(e.target === page) closeGatePage();
-      });
-    }
-
-    // ESC = ปิด
-    window.addEventListener("keydown", (e) => {
-      if(e.key === "Escape") closeGatePage();
-    });
-  })();
   </script>
   
   </body>
