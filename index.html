@@ -4484,11 +4484,33 @@ function rqHash(str){
   }
   return "H" + (h >>> 0).toString(36);
 }
+
+function rqStripTrailingIndex(name){
+  const n = normQuestName(name);
+  if(!n) return "";
+
+  return n
+    // ตัดเลขท้ายแบบ "main quest 2"
+    .replace(/\s+\d+$/,"")
+    // ตัดเลขท้ายแบบ "#2"
+    .replace(/\s+#\d+$/i,"")
+    // ตัดเลขท้ายแบบ "(2)"
+    .replace(/\s*\(\d+\)$/,"")
+    .trim();
+}
 function rqExtractDomainFromQuestName(name){
   const n = normQuestName(name);
   if(!n) return "";
-  const cut = n.split("•")[0].split("-")[0].split("|")[0].trim();
-  return cut.replace(/\b(\d+)\s*(min|m)\b/ig,"").trim();
+
+  const cut = n
+    .split("•")[0]
+    .split("-")[0]
+    .split("|")[0]
+    .trim();
+
+  const noMinutes = cut.replace(/\b(\d+)\s*(min|m)\b/ig,"").trim();
+
+  return rqStripTrailingIndex(noMinutes);
 }
 function rqClassifyLearningType(domain){
   const d = (domain||"").toLowerCase();
