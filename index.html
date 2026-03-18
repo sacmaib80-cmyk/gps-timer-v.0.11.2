@@ -3213,6 +3213,7 @@ linear-gradient(
 .hpDropNeutral{
   color:#888;
 }
+
 </style>
 </head>
 <body>
@@ -4188,6 +4189,32 @@ function renderMultiTabState(){
     // เอาไว้ใช้ตอน user พยายาม start quest
   }
 }
+function isSecondaryTab(){
+  return !isCurrentTabMasterNow();
+}
+
+function getTodayTriggerTimestamp(){
+  if(!isGateActiveToday()) return 0;
+  return todayTriggerTs() || 0;
+}
+function enforceSecondaryTabLock(){
+  if(!isSecondaryTab()) return;
+
+  if(el.startBtn) el.startBtn.disabled = true;
+  if(el.pauseBtn) el.pauseBtn.disabled = true;
+  if(el.resumeBtn) el.resumeBtn.disabled = true;
+  if(el.stopBtn) el.stopBtn.disabled = true;
+}
+function hasQuestAfterTodayTrigger(){
+  const triggerTs = getTodayTriggerTimestamp();
+  if(!triggerTs) return false;
+
+  const data = loadAll();
+  const today = data[localDateKey()];
+  if(!today || !Array.isArray(today.quests)) return false;
+
+  return today.quests.some(q => Number(q.ts || 0) >= triggerTs);
+}
 
   /* =========================
     DATA LAYER
@@ -4243,9 +4270,7 @@ function renderMultiTabState(){
     const day = data[dateKey];
     return !!(day && Array.isArray(day.quests) && day.quests.length > 0);
   }
-  function isFirstQuestAlreadyDoneToday(){
-    return isDayDone(localDateKey());
-  }
+ 
  function loadProfile(){
   try{
     return JSON.parse(localStorage.getItem(KEY_PROFILE)) || { name: "MaAMha" };
@@ -4724,7 +4749,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
       gateResetForToday(true);
     }
 
-    if(isFirstQuestAlreadyDoneToday()){
+    if(hasQuestAfterTodayTrigger()){
       gate.passed = true;
       gate.locked = false;
       gate.unlocked = true;
@@ -4739,7 +4764,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
       gate.startedAt = 0;
       gate.locked = false;
       gate.unlocked = true;
-      gate.passed = isFirstQuestAlreadyDoneToday() ? true : false;
+      gate.passed = hasQuestAfterTodayTrigger() ? true : false;
       saveGate();
     }
   }
@@ -4748,7 +4773,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
 
   function gateIsWorldActiveNow(){
     if(!isGateActiveToday()) return false;
-    if(isFirstQuestAlreadyDoneToday() || gate.passed) return false;
+    if(hasQuestAfterTodayTrigger() || gate.passed) return false;
     const now = Date.now();
     const start = gateWorldStartTs();
     if(!start) return false;
@@ -4788,7 +4813,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
 
   function gateMaybeLock(){
     if(!isGateActiveToday()) return;
-    if(gate.passed || isFirstQuestAlreadyDoneToday()) return;
+    if(gate.passed || hasQuestAfterTodayTrigger()) return;
     if(!gateIsWorldActiveNow()) return;
 
     const now = Date.now();
@@ -4809,7 +4834,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
   }
   function gateCanStartQuest(){
     if(!isGateActiveToday()) return true;
-    if(gate.passed || isFirstQuestAlreadyDoneToday()) return true;
+    if(gate.passed ||hasQuestAfterTodayTrigger()) return true;
     if(!gateIsWorldActiveNow()) return true;
     if(!gate.startedAt) return false;
     if(gate.locked && !gate.unlocked) return false;
@@ -4829,7 +4854,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
       hideGateTopBar();
       return;
     }
-    if(isFirstQuestAlreadyDoneToday()){
+    if(hasQuestAfterTodayTrigger()){
       gate.passed = true;
       gate.unlocked = true;
       gate.locked = false;
@@ -5015,7 +5040,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
       return;
     }
 
-    if(isFirstQuestAlreadyDoneToday() || gate.passed){
+    if(hasQuestAfterTodayTrigger() || gate.passed){
       hideGateCover();
 
       if(gate.doneBannerUntil && Date.now() < gate.doneBannerUntil){
@@ -5138,9 +5163,9 @@ function renderTopMenuUI(){
     UI HELPERS
   ========================= */
   function setReportVisible(v){
-    if(el.reportCard) el.reportCard.style.display = v ? "block" : "none";
-    if(el.reportHiddenHint) el.reportHiddenHint.style.display = v ? "none" : "block";
-  }
+  if(el.reportCard) el.reportCard.style.display = v ? "block" : "none";
+  if(el.reportHiddenHint) el.reportHiddenHint.style.display = v ? "none" : "block";
+}
  function updateStatusPill(){
   const map = {
     idle: "Idle",
@@ -5246,26 +5271,35 @@ function showActionLockBar(msg){
     }
   }
 
-  function renderControls(){
-    if(el.stopBtn)   el.stopBtn.disabled   = !(state.status==="running" || state.status==="paused");
-    if(el.pauseBtn)  el.pauseBtn.disabled  = state.status !== "running";
-    if(el.resumeBtn) el.resumeBtn.disabled = state.status !== "paused";
+ function renderControls(){
+  console.log("[renderControls] status =", state.status);
 
-    const lock = state.status !== "idle";
-    if(el.category) el.category.disabled = lock;
-    if(el.questName) el.questName.disabled = lock;
+  if(el.stopBtn)   el.stopBtn.disabled   = !(state.status==="running" || state.status==="paused");
+  if(el.pauseBtn)  el.pauseBtn.disabled  = state.status !== "running";
+  if(el.resumeBtn) el.resumeBtn.disabled = state.status !== "paused";
 
-    if(state.status==="idle"){
-      if(el.category) el.category.value = state.selectedCategory || "Learning";
-      if(el.questName) el.questName.value = state.questName || "";
-      if(el.cutMinutes) el.cutMinutes.value = state.cutMinutes ? String(state.cutMinutes) : "";
-      if(el.cutMode) el.cutMode.value = state.cutMode || "hard";
-    }
+  console.log("[renderControls after]", {
+    start: el.startBtn?.disabled,
+    pause: el.pauseBtn?.disabled,
+    resume: el.resumeBtn?.disabled,
+    stop: el.stopBtn?.disabled
+  });
 
-    renderCutUI();
-    gateEnforceStartButton();
-    renderGateTogglePill();
+  const lock = state.status !== "idle";
+  if(el.category) el.category.disabled = lock;
+  if(el.questName) el.questName.disabled = lock;
+
+  if(state.status==="idle"){
+    if(el.category) el.category.value = state.selectedCategory || "Learning";
+    if(el.questName) el.questName.value = state.questName || "";
+    if(el.cutMinutes) el.cutMinutes.value = state.cutMinutes ? String(state.cutMinutes) : "";
+    if(el.cutMode) el.cutMode.value = state.cutMode || "hard";
   }
+
+  renderCutUI();
+  gateEnforceStartButton();
+  renderGateTogglePill();
+}
 
   function renderToday(){
     const todayKey = localDateKey();
@@ -5320,10 +5354,13 @@ function showActionLockBar(msg){
   renderGatePageUI();
   renderTopMenuUI();
   renderHomeHud();
+  
 
   if(state.status === "stopped"){
     loadReportDraft(); // ✅ เพิ่มตรงนี้
   }
+
+  enforceSecondaryTabLock();
 }
   /* =========================
    RANDOM QUEST / DICE ENGINE PATCH v1.5
@@ -6028,6 +6065,12 @@ function rqSetSelected(q){
 function rqClearSelected(){
   localStorage.removeItem(KEY_RQ_SEL);
 }
+window.addEventListener("storage", (e)=>{
+  if(e.key === KEY_TAB_MASTER){
+    acquireMasterTab();
+    updateUI();
+  }
+});
 
 /* ---------- modal ---------- */
 function rqOpenModal(){
@@ -6064,7 +6107,7 @@ function rqShowIfEligible(){
 
   el.diceFab.style.display = "flex";
 
-  const blockedByGate = (isGateActiveToday() && !gate.passed && !isFirstQuestAlreadyDoneToday());
+  const blockedByGate = (isGateActiveToday() && !gate.passed && !hasQuestAfterTodayTrigger());
   const selected = rqGetSelected();
 
   if(blockedByGate){
@@ -6373,7 +6416,7 @@ if(!isCurrentTabMasterNow()){
   setReportVisible(false);
   updateUI();
 
-  if(isGateActiveToday() && gateIsWorldActiveNow() && !gate.passed && !isFirstQuestAlreadyDoneToday()){
+  if(isGateActiveToday() && gateIsWorldActiveNow() && !gate.passed && !hasQuestAfterTodayTrigger()){
     gate.firstQuestStartAt = Date.now();
     saveGate();
   }
@@ -6416,10 +6459,10 @@ if(!isCurrentTabMasterNow()){
   function stopQuest(){
   if(!(state.status==="running" || state.status==="paused")) return;
 
-  if(!isMasterTab){
-    showTimerWarn("แท็บนี้ไม่ใช่แท็บหลัก Stop ไม่ได้");
-    return;
-  }
+ if(!isCurrentTabMasterNow()){
+  showTimerWarn("แท็บนี้ไม่ใช่แท็บหลัก Stop ไม่ได้");
+  return;
+}
 
   const now = Date.now();
   const elapsed = (state.status==="running") ? computeElapsedMs(now) : state.elapsedBefore;
@@ -6730,7 +6773,7 @@ clearReportDraft();
       renderDayView(selectedDay);
     }
 
-    if(isFirstQuestAlreadyDoneToday()){
+    if(hasQuestAfterTodayTrigger()){
       gate.passed = true;
       gate.locked = false;
       gate.unlocked = true;
@@ -7206,30 +7249,31 @@ on(el.notes, "input", saveReportDraft);
   
 
 document.addEventListener("visibilitychange", ()=>{
-  if(!document.hidden){
-
-    if(state.status === "running" && state.cutEnabled && state.cutMinutes){
-
-      const ms = computeElapsedMs();
-      const targetMs = state.cutMinutes * 60000;
-
-      if(ms >= targetMs && !questFinished){
-        questFinished = true;
-        stopQuest();
-        return;
-      }
-
+  if(document.hidden) {
+    if(state.status === "stopped"){
+      saveReportDraft();
     }
-
-    syncGateRuntimeFromCfg();
-    gateMaybeLock();
-    gateCheckFirstQuestQualify();
-    gateEnforceStartButton();
-    renderGateUX();
-    rqTickUI();
-    renderGatePageUI();
-
+    return;
   }
+
+  if(state.status === "running" && state.cutEnabled && state.cutMinutes){
+    const ms = computeElapsedMs();
+    const targetMs = state.cutMinutes * 60000;
+
+    if(ms >= targetMs && !questFinished){
+      questFinished = true;
+      stopQuest();
+      return;
+    }
+  }
+
+  syncGateRuntimeFromCfg();
+  gateMaybeLock();
+  gateCheckFirstQuestQualify();
+  gateEnforceStartButton();
+  renderGateUX();
+  rqTickUI();
+  renderGatePageUI();
 });
 
 
@@ -7376,26 +7420,15 @@ window.addEventListener("beforeunload", ()=>{
   /* =========================
     BACKGROUND FIX
   ========================= */
-  document.addEventListener("visibilitychange", ()=>{
-    if(!document.hidden){
-      syncGateRuntimeFromCfg();
-      gateMaybeLock();
-      gateCheckFirstQuestQualify();
-      gateEnforceStartButton();
-      renderGateUX();
-      rqTickUI();
-      renderGatePageUI();
-    }
-  });
-  window.addEventListener("focus", ()=>{
-    syncGateRuntimeFromCfg();
-    gateMaybeLock();
-    gateCheckFirstQuestQualify();
-    gateEnforceStartButton();
-    renderGateUX();
-    rqTickUI();
-    renderGatePageUI();
-  });
+  // window.addEventListener("focus", ()=>{
+  //   syncGateRuntimeFromCfg();
+  //   gateMaybeLock();
+  //   gateCheckFirstQuestQualify();
+  //   gateEnforceStartButton();
+  //   renderGateUX();
+  //   rqTickUI();
+  //   renderGatePageUI();
+  // });
 function loadDicePos(){
   try{
     const raw = localStorage.getItem(KEY_DICE_POS);
@@ -7737,12 +7770,6 @@ function playQuestDoneSound(){
 
 window.addEventListener("beforeunload", ()=>{
   clearMasterTab();
-});
-
-window.addEventListener("storage", (e)=>{
-  if(e.key === KEY_TAB_MASTER){
-    acquireMasterTab();
-  }
 });
 
 /* =========================================
@@ -8753,8 +8780,6 @@ initDiceDrag();
 acquireMasterTab();
 startTabHeartbeat();
 
-acquireMasterTab();
-startTabHeartbeat();
 
     startTick();
   }
