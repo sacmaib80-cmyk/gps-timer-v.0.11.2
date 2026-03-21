@@ -34,6 +34,17 @@ const firebaseConfig = {
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
+  let currentUser = null;
+
+function syncAuthToWindow() {
+  window.sqAuth = {
+    user: currentUser,
+    uid: currentUser?.uid || null,
+    email: currentUser?.email || null,
+    name: currentUser?.displayName || null
+  };
+}
+
   const el = {
     googleLoginBtn: document.getElementById("googleLoginBtn"),
     logoutBtn: document.getElementById("logoutBtn"),
@@ -44,24 +55,29 @@ const firebaseConfig = {
   };
 
   function renderSignedOut() {
-    el.googleLoginBtn.hidden = false;
-    el.logoutBtn.hidden = true;
-    el.userBox.hidden = true;
+  el.googleLoginBtn.hidden = false;
+  el.logoutBtn.hidden = true;
+  el.userBox.hidden = true;
 
-    el.userPhoto.src = "";
-    el.userName.textContent = "Guest";
-    el.userEmail.textContent = "";
-  }
+  el.userPhoto.src = "";
+  el.userName.textContent = "Guest";
+  el.userEmail.textContent = "";
+
+  const sub = document.getElementById("accountSubText");
+  if (sub) sub.textContent = "Continue with Google";
+}
 
   function renderSignedIn(user) {
-    el.googleLoginBtn.hidden = true;
-    el.logoutBtn.hidden = false;
-    el.userBox.hidden = false;
+  el.googleLoginBtn.hidden = true;
+  el.logoutBtn.hidden = false;
+  el.userBox.hidden = false;
 
-    el.userPhoto.src = user.photoURL || "";
-    el.userName.textContent = user.displayName || "No name";
-    el.userEmail.textContent = user.email || "";
-  }
+  document.getElementById("accountSubText").textContent = user.displayName || "Logged in";
+
+  el.userPhoto.src = user.photoURL || "";
+  el.userName.textContent = user.displayName || "No name";
+  el.userEmail.textContent = user.email || "";
+}
 
   async function loginWithGoogle() {
     try {
@@ -94,13 +110,24 @@ const firebaseConfig = {
   }
 
   onAuthStateChanged(auth, (user) => {
-    console.log("Auth state changed:", user);
-    if (user) {
-      renderSignedIn(user);
-    } else {
-      renderSignedOut();
-    }
-  });
+  console.log("Auth state changed:", user);
+
+  currentUser = user || null;
+  syncAuthToWindow();
+
+  if (user) {
+    renderSignedIn(user);
+  } else {
+    renderSignedOut();
+  }
+
+  window.dispatchEvent(new CustomEvent("sq-auth-changed", {
+    detail: window.sqAuth
+  }));
+
+  window.dispatchEvent(new Event("sq-user-changed"));
+});
+
 
   el.googleLoginBtn?.addEventListener("click", loginWithGoogle);
   el.logoutBtn?.addEventListener("click", logoutNow);

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>SakuraQ v0.9.3</title>
+    <title>SakuraQ v0.10.0</title>
 
     <style>
       :root{
@@ -3675,6 +3675,86 @@ linear-gradient(
 .homeStreakBadge{
   border-radius:999px !important;
 }
+
+/* =========================
+   ACCOUNT UI FIX
+========================= */
+
+#logoutBtn{
+  width: 100%;
+  height: 36px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: #f3f7ff;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(37,99,235,.10);
+}
+
+#logoutBtn:hover{
+  background: #eaf2ff;
+}
+
+#userBox{
+  margin-top: 8px !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f8fbff;
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,.16);
+}
+
+#userPhoto{
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 34px;
+  background: #e5eefc;
+}
+
+#userBox > div{
+  min-width: 0;
+  flex: 1;
+}
+
+#userName{
+  font-size: 12px !important;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#userEmail{
+  margin-top: 2px;
+  font-size: 10px !important;
+  line-height: 1.2;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* กันปุ่ม Account เดิมดูยืด/เพี้ยน */
+#googleLoginBtn .topMenuItemRight{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#googleLoginBtn .googleIcon{
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
 </style>
 </head>
 <body>
@@ -3802,7 +3882,7 @@ linear-gradient(
                   <div class="brandMeta">
                     <div class="brandTitleRow">
                       <h1>SakuraQ</h1>
-                      <span class="versionBadge">v0.9.3</span>
+                      <span class="versionBadge">v0.10.0</span>
                     </div>
                     <div class="sub" id="todayText">Today: ----</div>
                   </div>
@@ -4383,18 +4463,29 @@ linear-gradient(
 <button class="topMenuItem" type="button" id="googleLoginBtn">
   <span class="topMenuItemLabel">
     <span class="topMenuItemTitle">Account</span>
-    <span class="topMenuItemSub">Continue with Google</span>
+    <span class="topMenuItemSub" id="accountSubText">Continue with Google</span>
   </span>
 
   <span class="topMenuItemRight">
-  <svg class="googleIcon" viewBox="0 0 48 48" aria-hidden="true">
-    <path fill="#EA4335" d="M24 9.5c3.5 0 6.7 1.2 9.2 3.6l6.8-6.8C35.6 2.3 30.2 0 24 0 14.7 0 6.6 5.4 2.7 13.2l7.9 6.1C12.5 13.5 17.8 9.5 24 9.5z"/>
-    <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.6h12.4c-.5 2.7-2.1 5-4.5 6.5l7 5.4c4.1-3.8 6.5-9.3 6.5-16z"/>
-    <path fill="#FBBC05" d="M10.6 28.3c-.6-1.8-.9-3.7-.9-5.8s.3-4 .9-5.8l-7.9-6.1C1 14.2 0 18 0 22.5s1 8.3 2.7 11.9l7.9-6.1z"/>
-    <path fill="#34A853" d="M24 45c6.5 0 12-2.1 16-5.7l-7-5.4c-2 1.4-4.5 2.2-9 2.2-6.2 0-11.5-4-13.4-9.5l-7.9 6.1C6.6 40.6 14.7 45 24 45z"/>
-  </svg>
-</span>
+    <svg class="googleIcon" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.7 1.2 9.2 3.6l6.8-6.8C35.6 2.3 30.2 0 24 0 14.7 0 6.6 5.4 2.7 13.2l7.9 6.1C12.5 13.5 17.8 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.6h12.4c-.5 2.7-2.1 5-4.5 6.5l7 5.4c4.1-3.8 6.5-9.3 6.5-16z"/>
+      <path fill="#FBBC05" d="M10.6 28.3c-.6-1.8-.9-3.7-.9-5.8s.3-4 .9-5.8l-7.9-6.1C1 14.2 0 18 0 22.5s1 8.3 2.7 11.9l7.9-6.1z"/>
+      <path fill="#34A853" d="M24 45c6.5 0 12-2.1 16-5.7l-7-5.4c-2 1.4-4.5 2.2-9 2.2-6.2 0-11.5-4-13.4-9.5l-7.9 6.1C6.6 40.6 14.7 45 24 45z"/>
+    </svg>
+  </span>
 </button>
+
+<!-- ✅ เพิ่มอันนี้ -->
+<button id="logoutBtn" hidden>Logout</button>
+
+<div id="userBox" hidden>
+  <img id="userPhoto" alt="User photo">
+  <div>
+    <div id="userName" style="font-size:12px;"></div>
+    <div id="userEmail" style="font-size:10px; opacity:0.6;"></div>
+  </div>
+</div>
 
 </div>
 
@@ -4460,6 +4551,34 @@ linear-gradient(
 </body>
 
 <script type="module" src="auth.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA_GnE6EKZdxem2XUHpgMuub2gPj3_PFgM",
+
+  authDomain: "sakuraq-b7f96.firebaseapp.com",
+
+  projectId: "sakuraq-b7f96",
+
+  storageBucket: "sakuraq-b7f96.firebasestorage.app",
+
+  messagingSenderId: "1069498952404",
+
+  appId: "1:1069498952404:web:34daf6db0244513bda6941",
+
+  measurementId: "G-L7BZVP9WRR"
+
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.sqDB = db;
+window.sqCloud = { doc, setDoc, getDoc };
+</script>
 
   <script>
 /* =========================================================
@@ -4769,12 +4888,25 @@ function hasQuestAfterTodayTrigger(){
     DATA LAYER
   ========================= */
   function loadAll(){
-    try { return JSON.parse(localStorage.getItem(KEY_DATA)) || {}; }
-    catch { return {}; }
+  try{
+    return JSON.parse(localStorage.getItem(makeScopedKey(KEY_DATA))) || {};
+  }catch{
+    return {};
   }
-  function saveAll(data){
-    localStorage.setItem(KEY_DATA, JSON.stringify(data));
-  }
+}
+
+let cloudSaveTimer = null;
+
+function saveAll(data){
+  localStorage.setItem(makeScopedKey(KEY_DATA), JSON.stringify(data));
+
+  // debounce 2 วิ
+  if(cloudSaveTimer) clearTimeout(cloudSaveTimer);
+
+  cloudSaveTimer = setTimeout(async () => {
+  await cloudSaveAll();
+}, 2000);
+}
   function ensureDay(data, dateKey){
     if(!data[dateKey]) data[dateKey] = { totalQps: 0, quests: [] };
     if(!Array.isArray(data[dateKey].quests)) data[dateKey].quests = [];
@@ -4822,14 +4954,14 @@ function hasQuestAfterTodayTrigger(){
  
  function loadProfile(){
   try{
-    return JSON.parse(localStorage.getItem(KEY_PROFILE)) || { name: "MaAMha" };
+    return JSON.parse(localStorage.getItem(makeScopedKey(KEY_PROFILE))) || { name: "MaAMha" };
   }catch{
     return { name: "MaAMha" };
   }
 }
 
 function saveProfile(profile){
-  localStorage.setItem(KEY_PROFILE, JSON.stringify(profile));
+  localStorage.setItem(makeScopedKey(KEY_PROFILE), JSON.stringify(profile));
 }
 
 function calcLifetimeQps(){
@@ -4855,11 +4987,17 @@ function calcLevelFromLifetimeQps(totalQps){
     STREAK
   ========================= */
   function loadStreak(){
-    const raw = localStorage.getItem(KEY_STREAK);
-    try { return raw ? JSON.parse(raw) : { current:0, best:0, lastDone:null }; }
-    catch { return { current:0, best:0, lastDone:null }; }
+  const raw = localStorage.getItem(makeScopedKey(KEY_STREAK));
+  try{
+    return raw ? JSON.parse(raw) : { current:0, best:0, lastDone:null };
+  }catch{
+    return { current:0, best:0, lastDone:null };
   }
-  function saveStreak(s){ localStorage.setItem(KEY_STREAK, JSON.stringify(s)); }
+}
+
+function saveStreak(s){
+  localStorage.setItem(makeScopedKey(KEY_STREAK), JSON.stringify(s));
+}
   function computeStreakFromLogs(){
     const today = localDateKey();
     if(!isDayDone(today)) return { current:0 };
@@ -4901,10 +5039,16 @@ function renderStreak(){
     UNDO/REDO
   ========================= */
   function loadUndo(){
-    try { return JSON.parse(localStorage.getItem(KEY_UNDO)) || { undo: null, redo: null }; }
-    catch { return { undo:null, redo:null }; }
+  try{
+    return JSON.parse(localStorage.getItem(makeScopedKey(KEY_UNDO))) || { undo: null, redo: null };
+  }catch{
+    return { undo:null, redo:null };
   }
-  function saveUndo(u){ localStorage.setItem(KEY_UNDO, JSON.stringify(u)); }
+}
+
+function saveUndo(u){
+  localStorage.setItem(makeScopedKey(KEY_UNDO), JSON.stringify(u));
+}
   function snapshotData(){ return loadAll(); }
   function applySnapshot(snap){
     if(!snap || typeof snap !== "object") return;
@@ -5143,15 +5287,112 @@ histConsistency: $("histConsistency"),
 };
   let tickHandle = null;
 
-  function saveState(){ localStorage.setItem(KEY_STATE, JSON.stringify(state)); }
-  function loadState(){
-    const raw = localStorage.getItem(KEY_STATE);
-    if(!raw) return;
-    try{
-      const s = JSON.parse(raw);
-      if(s && typeof s==="object") state = { ...state, ...s };
-    }catch{}
+function getActiveUserScope(){
+  return window.sqAuth?.uid || "guest";
+}
+
+function makeScopedKey(baseKey){
+  return `${baseKey}_${getActiveUserScope()}`;
+}
+
+function makeScopedDayKey(prefix, dayKey){
+  return `${prefix}${dayKey}_${getActiveUserScope()}`;
+}
+
+function saveState(){
+  localStorage.setItem(makeScopedKey(KEY_STATE), JSON.stringify(state));
+}
+
+function loadState(){
+  const raw = localStorage.getItem(makeScopedKey(KEY_STATE));
+  if(!raw) return;
+
+  try{
+    const parsed = JSON.parse(raw);
+    Object.assign(state, parsed);
+  }catch(err){
+    console.error("loadState failed:", err);
   }
+}
+function resetRuntimeForAccountSwitch(){
+  if(tickHandle){
+    clearInterval(tickHandle);
+    tickHandle = null;
+  }
+
+  activeQuest = null;
+  questStartTime = null;
+  questEndTime = null;
+  questDurationMs = 0;
+
+  questFinished = false;
+  notified = false;
+  smartWarnSent = false;
+
+  selectedDay = null;
+  historySelectedDay = null;
+
+  state = {
+    status: "idle",
+    startTs: null,
+    elapsedBefore: 0,
+    lastElapsedMs: 0,
+    startDateKey: null,
+
+    selectedCategory: "Learning",
+    questName: "",
+
+    cutEnabled: false,
+    cutMinutes: null,
+    cutMode: "hard",
+
+    softWarned: false,
+    softDeadlineTs: 0,
+
+    targetEndTs: 0
+  };
+
+  gate = {
+    dateKey: null,
+    enabled: false,
+    triggerHHMM: null,
+    startedAt: 0,
+    locked: false,
+    unlocked: false,
+    unlockReason: "",
+    passed: false,
+    firstQuestStartAt: 0,
+    bonusGranted: false,
+    doneBannerUntil: 0
+  };
+}
+
+window.addEventListener("sq-user-changed", async () => {
+  console.log("USER SWITCH → reload user data");
+
+  resetRuntimeForAccountSwitch();
+
+  // 🔥 สำคัญ: โหลดจาก cloud ก่อน
+  await cloudLoadAll();
+
+  // แล้วค่อย load local (ที่เพิ่ง overwrite)
+  loadState();
+  loadGateCfg();
+  loadGate();
+  syncGateRuntimeFromCfg();
+  loadQuestSuggestions();
+  loadReportDraft();
+
+  updateStreakAfterChange();
+  renderCutUI();
+  updateUI();
+  rqShowIfEligible();
+  rqTickUI();
+  renderHistoryPageStub();
+
+  acquireMasterTab();
+  startTick();
+});
   let diceDrag = {
   active: false,
   moved: false,
@@ -5196,7 +5437,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
 
     // load new cfg (overrides)
     try{
-      const raw = localStorage.getItem(KEY_GATE_CFG);
+      const raw = localStorage.getItem(makeScopedKey(KEY_GATE_CFG));
       if(raw){
         const c = JSON.parse(raw);
         if(c && typeof c==="object"){
@@ -5215,8 +5456,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
     saveGateCfg();
   }
   function saveGateCfg(){
-    localStorage.setItem(KEY_GATE_CFG, JSON.stringify(gateCfg));
-  }
+localStorage.setItem(makeScopedKey(KEY_GATE_CFG), JSON.stringify(gateCfg));  }
   function canEditTriggerNow(){
     if(!gateCfg.triggerHHMM) return true;
     return Date.now() >= (gateCfg.lockedUntil || 0);
@@ -5278,7 +5518,9 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
     doneBannerUntil: 0
   };
 
-  function saveGate(){ localStorage.setItem(KEY_GATE, JSON.stringify(gate)); }
+function saveGate(){
+  localStorage.setItem(makeScopedKey(KEY_GATE), JSON.stringify(gate));
+}
   function gateResetForToday(force=false){
     const today = localDateKey();
     gate.dateKey = today;
@@ -5296,7 +5538,7 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
   }
   function loadGate(){
     try{
-      const raw = localStorage.getItem(KEY_GATE);
+const raw = localStorage.getItem(makeScopedKey(KEY_GATE));
       if(raw){
         const g = JSON.parse(raw);
         if(g && typeof g==="object") gate = { ...gate, ...g };
@@ -6672,8 +6914,8 @@ function rqPick(energy){
   return { ok:false, reason:"NO_CANDIDATES" };
 }
 /* ---------- done ids per day ---------- */
-function rqDoneKey(){ 
-  return KEY_RQ_DONE_PREFIX + localDateKey(); 
+function rqDoneKey(){
+  return makeScopedDayKey(KEY_RQ_DONE_PREFIX, localDateKey());
 }
 function rqGetDoneSet(){
   try{
@@ -6695,7 +6937,7 @@ function rqMarkDone(id){
 
 /* ---------- cooldown ---------- */
 function rqCooldownUntil(){
-  const v = Number(localStorage.getItem(KEY_RQ_CD) || 0);
+  const v = Number(localStorage.getItem(makeScopedKey(KEY_RQ_CD)) || 0);
   return Number.isFinite(v) ? v : 0;
 }
 function rqIsCooldown(){
@@ -6708,13 +6950,13 @@ function rqCooldownLeft(){
 }
 function rqSetCooldown(){
   const until = Date.now() + SQ_DICE_RULES.cooldownMin * 60000;
-  localStorage.setItem(KEY_RQ_CD, String(until));
+localStorage.setItem(makeScopedKey(KEY_RQ_CD), String(until));
 }
 
 /* ---------- selected ---------- */
 function rqGetSelected(){
   try{
-    const raw = localStorage.getItem(KEY_RQ_SEL);
+const raw = localStorage.getItem(makeScopedKey(KEY_RQ_SEL));
     const obj = raw ? JSON.parse(raw) : null;
     if(!obj || typeof obj !== "object") return null;
     if(!obj.id || !obj.name) return null;
@@ -6724,10 +6966,10 @@ function rqGetSelected(){
   }
 }
 function rqSetSelected(q){
-  localStorage.setItem(KEY_RQ_SEL, JSON.stringify(q));
+localStorage.setItem(makeScopedKey(KEY_RQ_SEL), JSON.stringify(q));
 }
 function rqClearSelected(){
-  localStorage.removeItem(KEY_RQ_SEL);
+localStorage.removeItem(makeScopedKey(KEY_RQ_SEL));
 }
 window.addEventListener("storage", (e)=>{
   if(e.key === KEY_TAB_MASTER){
@@ -7643,7 +7885,7 @@ function saveReportDraft(){
   notes: el.notes?.value || ""
 };
 
-  localStorage.setItem(REPORT_DRAFT_KEY, JSON.stringify(draft));
+localStorage.setItem(makeScopedKey(REPORT_DRAFT_KEY), JSON.stringify(draft));
 
   if(el.draftHint){
     el.draftHint.style.display = "block";
@@ -7651,7 +7893,7 @@ function saveReportDraft(){
 }
 
 function loadReportDraft(){
-  const raw = localStorage.getItem(REPORT_DRAFT_KEY);
+const raw = localStorage.getItem(makeScopedKey(REPORT_DRAFT_KEY));
   if(!raw) {
     const lockedMinutes = Math.max(0, Math.round((state.lastElapsedMs || 0) / 60000));
 
@@ -7708,7 +7950,7 @@ function loadReportDraft(){
 }
 
 function clearReportDraft(){
-  localStorage.removeItem(REPORT_DRAFT_KEY);
+localStorage.removeItem(makeScopedKey(REPORT_DRAFT_KEY));
 }
 
 
@@ -9517,7 +9759,7 @@ let questSuggestActiveIndex = -1;
 
 function loadQuestSuggestions(){
   try{
-    const raw = localStorage.getItem(QUEST_SUGGESTIONS_KEY);
+const raw = localStorage.getItem(makeScopedKey(QUEST_SUGGESTIONS_KEY));
     const parsed = raw ? JSON.parse(raw) : [];
     questSuggestions = Array.isArray(parsed) ? parsed.filter(isValidQuestSuggestionItem) : [];
   }catch(err){
@@ -9528,7 +9770,7 @@ function loadQuestSuggestions(){
 
 function saveQuestSuggestions(){
   try{
-    localStorage.setItem(QUEST_SUGGESTIONS_KEY, JSON.stringify(questSuggestions));
+localStorage.setItem(makeScopedKey(QUEST_SUGGESTIONS_KEY), JSON.stringify(questSuggestions));
   }catch(err){
     console.error("saveQuestSuggestions error:", err);
   }
@@ -9833,6 +10075,80 @@ on(document.getElementById("dataPanel"), "click", (e)=>{
     closeDataPanel();
   }
 });
+
+// login system
+
+async function cloudSaveAll(){
+  const uid = window.sqAuth?.uid;
+  if(!uid){
+  console.log("skip cloud save (no uid)");
+  return;
+}
+
+  const data = loadAll(); // ของเดิมมึง
+
+  data.updatedAt = Date.now();
+
+  try{
+    const { doc, setDoc } = window.sqCloud;
+    const db = window.sqDB;
+
+    await setDoc(doc(db, "users", uid), {
+      data: data,
+      updatedAt: Date.now()
+    });
+
+    console.log("☁️ saved to cloud");
+  }
+  catch(e){
+  console.error("cloud load failed", e);
+  showTimerWarn("Cloud sync failed ⚠️");
+}
+}
+async function cloudLoadAll(){
+  const uid = window.sqAuth?.uid;
+  if(!uid) return;
+
+  try{
+    const { doc, getDoc } = window.sqCloud;
+    const db = window.sqDB;
+
+    const snap = await getDoc(doc(db, "users", uid));
+
+    if(snap.exists()){
+      const cloudPayload = snap.data();
+const cloudData = cloudPayload.data;
+const cloudTime = cloudPayload.updatedAt || 0;
+
+const localRaw = localStorage.getItem(makeScopedKey(KEY_DATA));
+let localTime = 0;
+
+try{
+  const parsed = JSON.parse(localRaw);
+  localTime = parsed?.updatedAt || 0;
+}catch{}
+
+if(cloudTime >= localTime){
+  localStorage.setItem(makeScopedKey(KEY_DATA), JSON.stringify(cloudData));
+  console.log("☁️ cloud → local");
+}else{
+  console.log("⚠️ local newer, skip cloud");
+}
+
+localStorage.setItem(makeScopedKey(KEY_DATA), JSON.stringify(cloudData));
+      console.log("☁️ loaded from cloud");
+    }else{
+      console.log("no cloud data yet");
+    }
+  }catch(e){
+    console.error("cloud load failed", e);
+  }
+
+  loadState();
+loadGate();
+updateStreakAfterChange();
+updateUI();
+}
 
   /* =========================
     BOOT
