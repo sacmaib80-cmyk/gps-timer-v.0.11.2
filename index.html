@@ -3758,14 +3758,18 @@ linear-gradient(
 .authGate{
   position: fixed;
   inset: 0;
-  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background:
-    linear-gradient(180deg, rgba(15,23,42,.20), rgba(15,23,42,.30));
-  backdrop-filter: blur(10px);
+  background: rgba(15,23,42,.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  pointer-events: auto;
+}
+
+.authGate[aria-hidden="true"]{
+  display: none !important;
 }
 
 .authCard{
@@ -3778,7 +3782,11 @@ linear-gradient(
     inset 0 0 0 1px rgba(148,163,184,.18);
   text-align: center;
 }
-
+.authCard{
+  position: relative;
+  z-index: 100000;
+  pointer-events: auto;
+}
 .authBrand{
   display: flex;
   align-items: center;
@@ -3897,6 +3905,7 @@ linear-gradient(
   line-height: 1.4;
   color: #94a3b8;
 }
+
 </style>
 </head>
 <body>
@@ -4619,7 +4628,9 @@ linear-gradient(
 </button>
 
 <!-- ✅ เพิ่มอันนี้ -->
-<button id="logoutBtn" hidden>Logout</button>
+<button id="logoutBtn" type="button" onclick="window.logoutNow && window.logoutNow()">
+  Logout
+</button>
 
 <div id="userBox" hidden>
   <img id="userPhoto" alt="User photo">
@@ -4731,8 +4742,8 @@ linear-gradient(
 <script type="module" src="auth.js"></script>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA_GnE6EKZdxem2XUHpgMuub2gPj3_PFgM",
@@ -4750,6 +4761,13 @@ const firebaseConfig = {
   measurementId: "G-L7BZVP9WRR"
 
 };
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.sqDB = db;
+window.sqCloud = { doc, setDoc, getDoc };
+</script>
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -5594,9 +5612,13 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
   };
 
   function loadGateCfg(){
-    gateCfg = { enabled:false, triggerHHMM:null, lockedUntil:0, effectiveFrom:null };
+  gateCfg = { enabled:false, triggerHHMM:null, lockedUntil:0, effectiveFrom:null };
 
-    // migrate legacy if present
+  const scopedKey = makeScopedKey(KEY_GATE_CFG);
+  const scopedRaw = localStorage.getItem(scopedKey);
+
+  // migrate legacy only for guest / only when no scoped data exists
+  if (!scopedRaw && !window.sqAuth?.uid) {
     try{
       const legacyRaw = localStorage.getItem(KEY_GATE_PREF_LEGACY);
       if(legacyRaw){
@@ -5604,34 +5626,37 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
         if(p && typeof p==="object" && /^\d{2}:\d{2}$/.test(p.triggerHHMM)){
           const last = Number(p.lastChangedAt || 0);
           const lockedUntil = last ? (last + GATE_RULES.lockDays*24*60*60*1000) : 0;
+
           gateCfg.triggerHHMM = p.triggerHHMM;
           gateCfg.enabled = !!p.enabled;
           gateCfg.lockedUntil = lockedUntil;
           gateCfg.effectiveFrom = localDateKey();
+
+          localStorage.setItem(scopedKey, JSON.stringify(gateCfg));
         }
       }
     }catch{}
-
-    // load new cfg (overrides)
-    try{
-      const raw = localStorage.getItem(makeScopedKey(KEY_GATE_CFG));
-      if(raw){
-        const c = JSON.parse(raw);
-        if(c && typeof c==="object"){
-          gateCfg.enabled = (typeof c.enabled === "boolean") ? c.enabled : gateCfg.enabled;
-          gateCfg.triggerHHMM = /^\d{2}:\d{2}$/.test(c.triggerHHMM||"") ? c.triggerHHMM : gateCfg.triggerHHMM;
-          gateCfg.lockedUntil = Number.isFinite(Number(c.lockedUntil)) ? Number(c.lockedUntil) : gateCfg.lockedUntil;
-          gateCfg.effectiveFrom = /^\d{4}-\d{2}-\d{2}$/.test(c.effectiveFrom||"") ? c.effectiveFrom : gateCfg.effectiveFrom;
-        }
-      }
-    }catch{}
-
-    if(gateCfg.triggerHHMM && !parseHHMM(gateCfg.triggerHHMM)) gateCfg.triggerHHMM = null;
-    if(!Number.isFinite(gateCfg.lockedUntil)) gateCfg.lockedUntil = 0;
-    if(gateCfg.effectiveFrom && !/^\d{4}-\d{2}-\d{2}$/.test(gateCfg.effectiveFrom)) gateCfg.effectiveFrom = null;
-
-    saveGateCfg();
   }
+
+  try{
+    const raw = localStorage.getItem(scopedKey);
+    if(raw){
+      const c = JSON.parse(raw);
+      if(c && typeof c==="object"){
+        gateCfg.enabled = (typeof c.enabled === "boolean") ? c.enabled : gateCfg.enabled;
+        gateCfg.triggerHHMM = /^\d{2}:\d{2}$/.test(c.triggerHHMM||"") ? c.triggerHHMM : gateCfg.triggerHHMM;
+        gateCfg.lockedUntil = Number.isFinite(Number(c.lockedUntil)) ? Number(c.lockedUntil) : gateCfg.lockedUntil;
+        gateCfg.effectiveFrom = /^\d{4}-\d{2}-\d{2}$/.test(c.effectiveFrom||"") ? c.effectiveFrom : gateCfg.effectiveFrom;
+      }
+    }
+  }catch{}
+
+  if(gateCfg.triggerHHMM && !parseHHMM(gateCfg.triggerHHMM)) gateCfg.triggerHHMM = null;
+  if(!Number.isFinite(gateCfg.lockedUntil)) gateCfg.lockedUntil = 0;
+  if(gateCfg.effectiveFrom && !/^\d{4}-\d{2}-\d{2}$/.test(gateCfg.effectiveFrom)) gateCfg.effectiveFrom = null;
+
+  saveGateCfg();
+}
   function saveGateCfg(){
 localStorage.setItem(makeScopedKey(KEY_GATE_CFG), JSON.stringify(gateCfg));  }
   function canEditTriggerNow(){
@@ -10294,25 +10319,24 @@ async function cloudLoadAll(){
 
     if(snap.exists()){
       const cloudPayload = snap.data();
-const cloudData = cloudPayload.data;
-const cloudTime = cloudPayload.updatedAt || 0;
+      const cloudData = cloudPayload.data;
+      const cloudTime = cloudPayload.updatedAt || 0;
 
-const localRaw = localStorage.getItem(makeScopedKey(KEY_DATA));
-let localTime = 0;
+      const localRaw = localStorage.getItem(makeScopedKey(KEY_DATA));
+      let localTime = 0;
 
-try{
-  const parsed = JSON.parse(localRaw);
-  localTime = parsed?.updatedAt || 0;
-}catch{}
+      try{
+        const parsed = JSON.parse(localRaw);
+        localTime = parsed?.updatedAt || 0;
+      }catch{}
 
-if(cloudTime >= localTime){
-  localStorage.setItem(makeScopedKey(KEY_DATA), JSON.stringify(cloudData));
-  console.log("☁️ cloud → local");
-}else{
-  console.log("⚠️ local newer, skip cloud");
-}
+      if(cloudTime >= localTime){
+        localStorage.setItem(makeScopedKey(KEY_DATA), JSON.stringify(cloudData));
+        console.log("☁️ cloud → local");
+      }else{
+        console.log("⚠️ local newer, skip cloud");
+      }
 
-localStorage.setItem(makeScopedKey(KEY_DATA), JSON.stringify(cloudData));
       console.log("☁️ loaded from cloud");
     }else{
       console.log("no cloud data yet");
@@ -10322,9 +10346,13 @@ localStorage.setItem(makeScopedKey(KEY_DATA), JSON.stringify(cloudData));
   }
 
   loadState();
-loadGate();
-updateStreakAfterChange();
-updateUI();
+
+  if (typeof loadGateCfg === "function") loadGateCfg();
+  if (typeof syncGateRuntimeFromCfg === "function") syncGateRuntimeFromCfg();
+
+  loadGate();
+  updateStreakAfterChange();
+  updateUI();
 }
 window.checkAuthGate = function(){
   const gate = document.getElementById("authGate");

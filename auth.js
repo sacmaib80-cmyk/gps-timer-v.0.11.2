@@ -12,13 +12,20 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA_GnE6EKZdxem2XUHpgMuub2gPj3_PFgM",
+ apiKey: "AIzaSyA_GnE6EKZdxem2XUHpgMuub2gPj3_PFgM",
+
   authDomain: "sakuraq-b7f96.firebaseapp.com",
+
   projectId: "sakuraq-b7f96",
+
   storageBucket: "sakuraq-b7f96.firebasestorage.app",
+
   messagingSenderId: "1069498952404",
+
   appId: "1:1069498952404:web:34daf6db0244513bda6941",
+
   measurementId: "G-L7BZVP9WRR"
+
 };
 
 const app = initializeApp(firebaseConfig);
@@ -108,11 +115,24 @@ async function logoutNow() {
   }
 }
 
+window.loginWithGoogle = loginWithGoogle;
+window.logoutNow = logoutNow;
+
 onAuthStateChanged(auth, (user) => {
   console.log("Auth state:", user);
 
   currentUser = user || null;
   syncAuthToWindow();
+
+  if (typeof window.loadGateCfg === "function") {
+    window.loadGateCfg();
+  }
+  if (typeof window.syncGateRuntimeFromCfg === "function") {
+    window.syncGateRuntimeFromCfg();
+  }
+
+  document.body.classList.toggle("is-guest", !user);
+  document.body.classList.toggle("is-authed", !!user);
 
   if (user) {
     renderSignedIn(user);
@@ -126,10 +146,6 @@ onAuthStateChanged(auth, (user) => {
     gate.setAttribute("aria-hidden", user ? "true" : "false");
   }
 
-  if (typeof window.checkAuthGate === "function") {
-    window.checkAuthGate();
-  }
-
   window.dispatchEvent(new CustomEvent("sq-auth-changed", {
     detail: window.sqAuth
   }));
@@ -138,13 +154,17 @@ onAuthStateChanged(auth, (user) => {
 });
 
 document.addEventListener("click", (e) => {
+  console.log("CLICK TARGET:", e.target);
+
   if (e.target.closest("#authGateLoginBtn, #googleLoginBtn")) {
+    console.log("LOGIN HIT");
     e.preventDefault();
     loginWithGoogle();
     return;
   }
 
   if (e.target.closest("#logoutBtn")) {
+    console.log("LOGOUT HIT");
     e.preventDefault();
     logoutNow();
   }
