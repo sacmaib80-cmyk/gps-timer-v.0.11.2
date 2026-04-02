@@ -6549,13 +6549,54 @@ saveAll(all);
     if(el.gateLimitDisplay) el.gateLimitDisplay.textContent = `${GATE_RULES.limitMin}m`;
     if(el.gateQualifyDisplay) el.gateQualifyDisplay.textContent = `${GATE_RULES.qualifyMin}m`;
   }
-  function sendMorningGateNotification(){
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
+  async function sendMorningGateNotification(){
+  if(!("Notification" in window)) return false;
+  if(Notification.permission !== "granted") return false;
+  if(!("serviceWorker" in navigator)) return false;
 
-  new Notification("Morning Gate", {
-    body: `ถึงเวลา ${gateCfg.triggerHHMM} แล้ว เริ่มเควสแรกได้เลย`,
-  });
+  // ถ้า user กำลังเปิดหน้าแอปอยู่แล้ว ไม่ต้องยิง notification ซ้ำ
+  if(document.visibilityState === "visible") return false;
+
+  try{
+    const reg = await navigator.serviceWorker.ready;
+
+    await reg.showNotification("🚨 Morning Gate", {
+      body: `ถึงเวลา ${gateCfg.triggerHHMM} แล้ว • เริ่มเควสแรกให้ทัน ${GATE_RULES.qualifyMin} นาที`,
+      icon: "icon-192.png",
+      tag: "sakuraq-morning-gate",
+      renotify: false,
+      data: {
+        type: "morning-gate",
+        triggerHHMM: gateCfg.triggerHHMM,
+        dateKey: localDateKey()
+      }
+    });
+
+    return true;
+  }catch(err){
+    console.error("Morning Gate notification error:", err);
+    return false;
+  }
+}
+
+async function maybeSendMorningGateNotification(){
+  if(!gateCfg.enabled || !gateCfg.triggerHHMM) return false;
+  if(!isGateActiveToday()) return false;
+  if(!gateIsWorldActiveNow()) return false;
+  if(gate.passed || hasQuestAfterTodayTrigger()) return false;
+
+  const todayKey = localDateKey();
+  const notifyKey = `${todayKey}_${gateCfg.triggerHHMM}`;
+
+  if(lastGateNotifyKey === notifyKey) return false;
+
+  const sent = await sendMorningGateNotification();
+
+  if(sent){
+    lastGateNotifyKey = notifyKey;
+  }
+
+  return sent;
 }
 
   /* =========================
@@ -6693,14 +6734,6 @@ saveAll(all);
       return;
     }
 
-// 🔔 ยิง notification ครั้งเดียวต่อวัน
-const todayKey = localDateKey();
-const notifyKey = `${todayKey}_${gateCfg.triggerHHMM}`;
-
-if(lastGateNotifyKey !== notifyKey){
-  sendMorningGateNotification();
-  lastGateNotifyKey = notifyKey;
-}
 
 async function ensureNotificationPermission(){
   if (!("Notification" in window)) return;
@@ -8140,6 +8173,7 @@ if(!isCurrentTabMasterNow()){
     gateCheckFirstQuestQualify();
     gateEnforceStartButton();
     renderGateUX();
+    maybeSendMorningGateNotification();
 
     rqTickUI();
   }, 250);
@@ -9434,6 +9468,7 @@ on(el.claimProof, "input", ()=>{
       return;
     }
     gateCfg.enabled = !gateCfg.enabled;
+    lastGateNotifyKey = "";
 saveGateCfg();
 syncGateRuntimeFromCfg();
 
@@ -9482,6 +9517,8 @@ showTimerWarn("Morning Gate: ON");
   }
 
   const res = setTriggerWithLock7Days(hhmm);
+
+  lastGateNotifyKey = "";
 
   if(!res.ok){
     showTimerWarn(res.msg);
@@ -9542,13 +9579,14 @@ document.addEventListener("visibilitychange", ()=>{
 
   // UI + systems
   syncGateRuntimeFromCfg();
-  gateMaybeLock();
-  gateCheckFirstQuestQualify();
-  gateEnforceStartButton();
-  renderGateUX();
-  rqTickUI();
-  renderGatePageUI();
-  updateUI();
+gateMaybeLock();
+gateCheckFirstQuestQualify();
+gateEnforceStartButton();
+renderGateUX();
+maybeSendMorningGateNotification();
+rqTickUI();
+renderGatePageUI();
+updateUI();
 });
 
 

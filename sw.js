@@ -1,6 +1,9 @@
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
+  const data = event.notification.data || {};
+  const targetUrl = "./";
+
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
@@ -9,7 +12,7 @@ self.addEventListener("notificationclick", (event) => {
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow("./");
+        return clients.openWindow(targetUrl);
       }
     })
   );
