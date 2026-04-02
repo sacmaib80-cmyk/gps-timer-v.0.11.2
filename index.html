@@ -5170,6 +5170,40 @@ function startTabHeartbeat(){
     renderMultiTabState();
   }, 1500);
 }
+/* =========================
+  GATE HEARTBEAT
+  - แยกจาก timer tick
+  - เอาไว้ refresh Morning Gate บนมือถือแม้ตอน idle
+========================= */
+let gateHeartbeat = null;
+
+function runGateHeartbeatOnce(){
+  syncGateRuntimeFromCfg();
+  gateMaybeLock();
+  gateCheckFirstQuestQualify();
+  gateEnforceStartButton();
+  renderGateUX();
+  renderGatePageUI();
+}
+
+function startGateHeartbeat(){
+  if(gateHeartbeat) clearInterval(gateHeartbeat);
+
+  // ยิงทันที 1 รอบก่อน
+  runGateHeartbeatOnce();
+
+  // แล้วค่อยวิ่งต่อเรื่อย ๆ
+  gateHeartbeat = setInterval(()=>{
+    runGateHeartbeatOnce();
+  }, 1000);
+}
+
+function stopGateHeartbeat(){
+  if(gateHeartbeat){
+    clearInterval(gateHeartbeat);
+    gateHeartbeat = null;
+  }
+}
 function stopTabHeartbeat(){
   if(tabHeartbeat){
     clearInterval(tabHeartbeat);
@@ -5206,7 +5240,19 @@ function hasQuestAfterTodayTrigger(){
   const today = all.days?.[localDateKey()];
   if(!today || !Array.isArray(today.quests)) return false;
 
-  return today.quests.some(q => Number(q.ts || 0) >= triggerTs);
+  return today.quests.some(q => {
+    const ts = Number(q.ts || 0);
+    const mins = Number(q.minutesSpent || 0);
+
+    // ต้อง submit หลัง trigger และ quest นั้นต้องยาวพอถึง qualifyMin จริง
+    if(ts < triggerTs) return false;
+    if(mins < GATE_RULES.qualifyMin) return false;
+
+    // ไม่นับโบนัส auto ของ Morning Gate เอง
+    if(normQuestName(q.questName).toLowerCase() === "morning gate bonus") return false;
+
+    return true;
+  });
 }
 function calcInsightBonusV1({ minutes, note }){
   const text = (note || "").trim();
@@ -6136,6 +6182,9 @@ const KEY_DICE_POS = "qps_dice_pos_v1";
     effectiveFrom: null
   };
 
+  let gateTriggerDraft = "";
+let gateTriggerEditing = false;
+
   function loadGateCfg(){
   let loaded = null;
 
@@ -6515,18 +6564,26 @@ saveAll(all);
     - Toggle ON/OFF + Set Trigger inside this page
   ========================= */
   function openGatePage(){
-    if(!el.gatePage) return;
-    el.gatePage.classList.add("show");
-    el.gatePage.setAttribute("aria-hidden","false");
-    document.body.style.overflow = "hidden";
-    renderGatePageUI();
-  }
+  if(!el.gatePage) return;
+
+  gateTriggerEditing = false;
+  gateTriggerDraft = gateCfg.triggerHHMM || "";
+
+  el.gatePage.classList.add("show");
+  el.gatePage.setAttribute("aria-hidden","false");
+  document.body.style.overflow = "hidden";
+  renderGatePageUI();
+}
   function closeGatePage(){
-    if(!el.gatePage) return;
-    el.gatePage.classList.remove("show");
-    el.gatePage.setAttribute("aria-hidden","true");
-    document.body.style.overflow = "";
-  }
+  if(!el.gatePage) return;
+
+  gateTriggerEditing = false;
+  gateTriggerDraft = "";
+
+  el.gatePage.classList.remove("show");
+  el.gatePage.setAttribute("aria-hidden","true");
+  document.body.style.overflow = "";
+}
   function renderGatePageUI(){
     // optional UI: if not present, just ignore
     if(el.gatePageEnableBtn){
@@ -6538,9 +6595,18 @@ saveAll(all);
     }
 
     if(el.gatePageTriggerInput){
-      el.gatePageTriggerInput.value = gateCfg.triggerHHMM || "";
-      el.gatePageTriggerInput.disabled = (state.status !== "idle") || (!canEditTriggerNow() && gateCfg.enabled);
-    }
+  const nextValue = gateTriggerEditing
+    ? gateTriggerDraft
+    : (gateCfg.triggerHHMM || "");
+
+  // กัน rerender ทับค่าที่กำลังพิมพ์
+  if(el.gatePageTriggerInput.value !== nextValue){
+    el.gatePageTriggerInput.value = nextValue;
+  }
+
+  el.gatePageTriggerInput.disabled =
+    (state.status !== "idle") || (!canEditTriggerNow() && gateCfg.enabled);
+}
 
     if(el.gatePageHint){
       if(!gateCfg.triggerHHMM){
@@ -6574,21 +6640,19 @@ saveAll(all);
 }
   /* master UX (cover/topbar) */
   function renderGateUX(){
-    renderGateCoverDisplay();
+  renderGateCoverDisplay();
 
-    if(!gateCfg.enabled || !gateCfg.triggerHHMM || !isGateActiveToday()){
-      hideGateCover();
-      hideGateTopBar();
+  // ถ้าผู้ใช้กำลังเปิดหน้า Gate config อยู่
+  // อย่าให้ live cover เด้งทับ config modal
+  if(el.gatePage?.classList.contains("show")){
+    hideGateCover();
+  }
 
-      if(el.gateCoverStatusChip) el.gateCoverStatusChip.textContent = (!gateCfg.triggerHHMM ? "STATUS: NOT SET" : "STATUS: OFF");
-      if(el.gateCoverTime) el.gateCoverTime.textContent = (!gateCfg.triggerHHMM ? "--.--" : "OFF");
-      if(el.gateCoverHint){
-        el.gateCoverHint.innerHTML = (!gateCfg.triggerHHMM)
-          ? `ยังไม่ตั้ง Trigger • ไปที่ปุ่ม Morning Gate ขวาบนเพื่อเข้าไปตั้ง`
-          : `Gate ปิดอยู่`;
-      }
-      return;
-    }
+  if(!gateCfg.enabled || !gateCfg.triggerHHMM || !isGateActiveToday()){
+    hideGateCover();
+    hideGateTopBar();
+    return;
+  }
 
     if(hasQuestAfterTodayTrigger() || gate.passed){
       hideGateCover();
@@ -8172,7 +8236,8 @@ if(
   isGateActiveToday() &&
   gateIsWorldActiveNow() &&
   !gate.passed &&
-  !hasQuestAfterTodayTrigger()
+  !hasQuestAfterTodayTrigger() &&
+  !gate.firstQuestStartAt
 ){
   gate.firstQuestStartAt = Date.now();
   saveGate();
@@ -8378,9 +8443,16 @@ claimResolved: false,
     const all = loadAll();
 const day = ensureDay(all.days, dateKey);
     day.quests.push(entry);
-    recalcDayTotal(day);
-    saveAll(all);
-    clearReportDraft();
+recalcDayTotal(day);
+saveAll(all);
+
+// รี sync gate หลัง submit ทันที
+syncGateRuntimeFromCfg();
+gateMaybeLock();
+gateEnforceStartButton();
+renderGateUX();
+
+clearReportDraft();
 clearReportFormFields();
 
     if(plus6Check.ok && plus6Check.sourceQuest){
@@ -9384,52 +9456,66 @@ rqShowIfEligible();
 
 showTimerWarn("Morning Gate: ON");
   });
+  on(el.gatePageTriggerInput, "input", ()=>{
+  gateTriggerEditing = true;
+  gateTriggerDraft = el.gatePageTriggerInput?.value || "";
+});
 
   // Trigger change inside Gate Page
   on(el.gatePageTriggerInput, "change", ()=>{
-    if(state.status !== "idle"){
-  showActionLockBar("อ้ะ! กำลังทำเควสอยู่ ยังเปลี่ยนเวลา Trigger ไม่ได้นะ");
-  renderGatePageUI();
-  return;
-}
-
-    const hhmm = el.gatePageTriggerInput?.value;
-    if(!hhmm){
-      showTimerWarn("ต้องเลือกเวลา");
-      renderGatePageUI();
-      return;
-    }
-
-    // ✅ allow set even if currently OFF (ต่างจากของเดิม) — เพราะตั้งในหน้า Gate โดยตรง
-    const res = setTriggerWithLock7Days(hhmm);
-    if(!res.ok){
-      showTimerWarn(res.msg);
-      // restore value
-      if(el.gatePageTriggerInput) el.gatePageTriggerInput.value = gateCfg.triggerHHMM || "";
-      renderGatePageUI();
-      return;
-    }
-
-    gateResetForToday(true);
-    syncGateRuntimeFromCfg();
-
+  if(state.status !== "idle"){
+    showActionLockBar("อ้ะ! กำลังทำเควสอยู่ ยังเปลี่ยนเวลา Trigger ไม่ได้นะ");
+    gateTriggerEditing = false;
+    gateTriggerDraft = gateCfg.triggerHHMM || "";
     renderGatePageUI();
-    renderGateTogglePill();
-    renderGateUX();
-    gateEnforceStartButton();
+    return;
+  }
 
-    showTimerWarn((res.effectiveFrom && localDateKey() < res.effectiveFrom)
+  const hhmm = (el.gatePageTriggerInput?.value || "").trim();
+
+  if(!hhmm){
+    showTimerWarn("ต้องเลือกเวลา");
+    gateTriggerEditing = false;
+    gateTriggerDraft = gateCfg.triggerHHMM || "";
+    renderGatePageUI();
+    return;
+  }
+
+  const res = setTriggerWithLock7Days(hhmm);
+
+  if(!res.ok){
+    showTimerWarn(res.msg);
+    gateTriggerEditing = false;
+    gateTriggerDraft = gateCfg.triggerHHMM || "";
+    renderGatePageUI();
+    return;
+  }
+
+  gateTriggerEditing = false;
+  gateTriggerDraft = gateCfg.triggerHHMM || "";
+
+  gateResetForToday(true);
+  syncGateRuntimeFromCfg();
+
+  renderGatePageUI();
+  renderGateTogglePill();
+  renderGateUX();
+  gateEnforceStartButton();
+
+  showTimerWarn(
+    (res.effectiveFrom && localDateKey() < res.effectiveFrom)
       ? `Trigger set → ${gateCfg.triggerHHMM} (เริ่มใช้พรุ่งนี้)`
       : `Trigger set → ${gateCfg.triggerHHMM}`
-    );
-  });
+  );
+});
   
 
 document.addEventListener("visibilitychange", ()=>{
-  if(document.hidden){
+    if(document.hidden){
     if(state.status === "stopped"){
       saveReportDraft();
     }
+    stopGateHeartbeat();
     return;
   }
 
@@ -9451,6 +9537,8 @@ document.addEventListener("visibilitychange", ()=>{
       showTimerWarn("ตรวจพบแท็บหลักอีกอัน แท็บนี้หยุดการนับเวลา");
     }
   }
+
+    startGateHeartbeat();
 
   // UI + systems
   syncGateRuntimeFromCfg();
@@ -9608,6 +9696,7 @@ window.addEventListener("focus", ()=>{
     if(!tickHandle) startTick();
   }
 
+  startGateHeartbeat();
   checkAutoStop();
   updateUI();
 });
@@ -9619,6 +9708,7 @@ window.addEventListener("pageshow", ()=>{
     if(!tickHandle) startTick();
   }
 
+  startGateHeartbeat();
   checkAutoStop();
   updateUI();
 });
@@ -11387,6 +11477,7 @@ checkAuthGate();
     loadGateCfg();
     loadGate();
     syncGateRuntimeFromCfg();
+    startGateHeartbeat();
 
     checkAutoStop();
      loadReportDraft();
