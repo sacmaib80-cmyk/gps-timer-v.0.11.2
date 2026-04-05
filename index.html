@@ -6501,6 +6501,15 @@ const raw = localStorage.getItem(makeScopedKey(KEY_GATE));
 
   if(!deadline) return;
 
+  // ✅ ถ้าเคย unlock แล้ว ห้าม lock ทับอีก
+  if(gate.unlocked){
+    if(gate.locked){
+      gate.locked = false;
+      saveGate();
+    }
+    return;
+  }
+
   // ยังไม่ถึง deadline
   if(now <= deadline){
     if(gate.locked){
@@ -6532,6 +6541,9 @@ const raw = localStorage.getItem(makeScopedKey(KEY_GATE));
   if(gate.passed || hasQuestAfterTodayTrigger()) return true;
   if(!gateIsWorldActiveNow()) return true;
 
+  // ✅ ถ้า user unlock แล้ว ให้เริ่มได้ แม้เลย deadline
+  if(gate.unlocked) return true;
+
   const now = Date.now();
   const deadline = gateWorldDeadlineTs();
 
@@ -6540,9 +6552,8 @@ const raw = localStorage.getItem(makeScopedKey(KEY_GATE));
     return false;
   }
 
-  if(gate.locked && !gate.unlocked) return false;
+  if(gate.locked) return false;
 
-  // ก่อน deadline ยังเริ่มได้
   return true;
 }
   function gateEnforceStartButton(){
