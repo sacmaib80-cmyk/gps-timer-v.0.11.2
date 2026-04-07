@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>SakuraQ v0.11.5 debug</title>
+    <title>SakuraQ v0.11.6 debug</title>
 
     <link rel="manifest" href="./manifest.webmanifest">
 
@@ -4024,6 +4024,16 @@ body.hasMultiTabBanner{
     top: 0;
   }
 }
+button,
+a,
+div,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+*:focus {
+  outline: none;
+}
 </style>
 </head>
 <body>
@@ -4156,7 +4166,7 @@ body.hasMultiTabBanner{
                   <div class="brandMeta">
                     <div class="brandTitleRow">
                       <h1>SakuraQ</h1>
-                      <span class="versionBadge">v0.11.5</span>
+                      <span class="versionBadge">v0.11.6</span>
                     </div>
                     <div class="sub" id="todayText">Today: ----</div>
                   </div>
@@ -5335,7 +5345,7 @@ function hasQuestAfterTodayTrigger(){
 
     // ต้อง submit หลัง trigger และ quest นั้นต้องยาวพอถึง qualifyMin จริง
     if(ts < triggerTs) return false;
-    if(mins < GATE_RULES.qualifyMin) return false;
+    if(mins <= 0) return false;
 
     // ไม่นับโบนัส auto ของ Morning Gate เอง
     if(normQuestName(q.questName).toLowerCase() === "morning gate bonus") return false;
@@ -6380,6 +6390,7 @@ function saveGateCfg(){
     locked: false,
     unlocked: false,
     unlockReason: "",
+      manualUnlockDateKey: "",
     passed: false,
     startedInTime: false,
 awaitingGateResult: false,
@@ -6446,21 +6457,45 @@ const raw = localStorage.getItem(makeScopedKey(KEY_GATE));
       }
     }catch{}
 
-    const today = localDateKey();
-    if(gate.dateKey !== today){
-      gateResetForToday(true);
-    }
+   const today = localDateKey();
+if(gate.dateKey !== today){
+  gateResetForToday(true);
+}
 
-    const prevPassed = gate.passed;
+const prevPassed = gate.passed;
 const prevLocked = gate.locked;
+const prevUnlocked = gate.unlocked;
+const prevReason = gate.unlockReason;
 
 gateApplyQuestTruth();
 
-if(gate.passed !== prevPassed || gate.locked !== prevLocked){
-  saveGate("loadGate:truth-sync");
+// ✅ ถ้าเคย manual unlock แล้ว และยังไม่ pass
+// รีโหลดมาแล้วห้ามค้างเป็น locked
+if(gate.unlocked && !gate.passed){
+  gate.locked = false;
+}
+
+// ✅ ถ้าผ่านแล้ว ก็ไม่ควร locked
+if(gate.passed){
+  gate.locked = false;
+}
+
+if(
+  gate.passed !== prevPassed ||
+  gate.locked !== prevLocked ||
+  gate.unlocked !== prevUnlocked ||
+  gate.unlockReason !== prevReason
+){
+  saveGate("loadGate:normalize-unlock");
 }
   }
   function gateApplyQuestTruth(){
+  if(gate._passedByRuntime){
+    gate.passed = true;
+    gate.locked = false;
+    return;
+  }
+
   if(hasQuestAfterTodayTrigger()){
     gate.passed = true;
     gate.locked = false;
@@ -6602,20 +6637,31 @@ console.log("[GATE after gateMaybeLock]", {
   function gateCanStartQuest(){
   if(!isGateActiveToday()) return true;
   if(gate.passed || hasQuestAfterTodayTrigger()) return true;
-  if(!gateIsWorldActiveNow()) return true;
 
-  // ✅ ถ้า user unlock แล้ว ให้เริ่มได้ แม้เลย deadline
+  // manual unlock = อนุญาต
   if(gate.unlocked) return true;
 
+  // fail/locked = ห้าม
+  if(gate.locked) return false;
+
   const now = Date.now();
+  const start = gateWorldStartTs();
   const deadline = gateWorldDeadlineTs();
 
-  // เลย deadline แล้ว ห้ามเริ่มเควสใหม่
-  if(deadline && now > deadline){
-    return false;
-  }
+  if(!start || !deadline) return true;
 
-  if(gate.locked) return false;
+  // ก่อน trigger = ยังเริ่มได้ตามปกติ
+  if(now < start) return true;
+
+  // ระหว่าง trigger ถึง deadline = ยังเริ่มได้ ถ้ายังไม่ locked
+  if(now <= deadline) return true;
+
+  // หลัง deadline:
+  // ถ้าไม่ได้เริ่มทันแล้ว -> ห้าม
+  if(!gate.startedInTime) return false;
+
+  // ถ้าเริ่มทันแล้วและกำลังรอผล -> ไม่ควร start เควสใหม่
+  if(gate.awaitingGateResult) return false;
 
   return true;
 }
@@ -6731,19 +6777,21 @@ saveAll(all);
   });
 
   if(msSinceFirstQuest >= GATE_RULES.qualifyMin * 60000){
-    gate.passed = true;
-    gate.locked = false;
+  gate.passed = true;
+  gate.locked = false;
 
-    // ถ้าเคย unlock manual มาก่อน ให้คงค่าไว้
-    // เพราะมันเอาไว้บอกว่าโบนัสโดนตัด
-    gate.doneBannerUntil = Date.now() + 2000;
+  // 🔥 FIX: กัน reload แล้วกลับไป LOCK
+  gate._passedByRuntime = true;
 
-    saveGate();
-    gateGrantBonusIfEligible();
-    renderGateUX();
-    gateEnforceStartButton();
-    rqShowIfEligible();
-  }
+  gate.doneBannerUntil = Date.now() + 2000;
+
+  saveGate("gateCheckFirstQuestQualify:PASS");
+
+  gateGrantBonusIfEligible();
+  renderGateUX();
+  gateEnforceStartButton();
+  rqShowIfEligible();
+}
 }
   function renderGateCoverDisplay(){
     if(el.gateTriggerDisplay) el.gateTriggerDisplay.textContent = (gateCfg.triggerHHMM ? gateCfg.triggerHHMM : "--.--");
@@ -6927,23 +6975,74 @@ async function maybeSendMorningGateNotification(){
       return;
     }
 
-    if(!gateIsWorldActiveNow()){
-      hideGateCover();
-      hideGateTopBar();
+    
 
-      if(el.gateCoverStatusChip) el.gateCoverStatusChip.textContent = "STATUS: WAIT";
-      const start = todayAtHHMM(gateCfg.triggerHHMM);
-      if(start && el.gateCoverTime && el.gateCoverHint){
-        const hh = String(start.getHours()).padStart(2,"0");
-        const mm = String(start.getMinutes()).padStart(2,"0");
-        el.gateCoverTime.textContent = `${hh}:${mm}`;
-        el.gateCoverHint.innerHTML = `Gate จะเริ่มบังคับเมื่อถึง <b>${gateCfg.triggerHHMM}</b>`;
-      }else{
-        if(el.gateCoverTime) el.gateCoverTime.textContent = "--:--";
-        if(el.gateCoverHint) el.gateCoverHint.innerHTML = `Trigger ไม่ถูกต้อง`;
-      }
-      return;
-    }
+    // ✅ NEW: unlocked state
+if(!gate.locked && gate.unlocked && !gate.passed){
+  hideGateCover();
+  showGateTopBar();
+
+  el.gateTopBar?.classList.remove("done");
+
+  if(el.gateTopTitle) el.gateTopTitle.textContent = "Morning Gate • UNLOCKED";
+  if(el.gateTopSub) el.gateTopSub.textContent = "ปลดล็อกแล้ว • สามารถเริ่มเควสได้✔️";
+  if(el.gateTopTime) el.gateTopTime.textContent = "OK";
+  if(el.gateTopOpenBtn) el.gateTopOpenBtn.textContent = "Gate";
+
+  return;
+}
+
+// unlocked state
+if(!gate.locked && gate.unlocked && !gate.passed){
+  hideGateCover();
+  showGateTopBar();
+  el.gateTopBar?.classList.remove("done");
+
+  if(el.gateTopTitle) el.gateTopTitle.textContent = "Morning Gate • UNLOCKED";
+  if(el.gateTopSub) el.gateTopSub.textContent = "ปลดล็อกแล้ว • สามารถเริ่มเควสได้✔️";
+  if(el.gateTopTime) el.gateTopTime.textContent = "OK";
+  if(el.gateTopOpenBtn) el.gateTopOpenBtn.textContent = "Gate";
+
+  return;
+}
+
+    if(!gateIsWorldActiveNow()){
+  // ถ้า fail/locked หลัง deadline -> ต้องโชว์ top bar แดง
+  if(gate.locked && !gate.passed){
+    hideGateCover();
+    showGateTopBar();
+    el.gateTopBar?.classList.remove("done");
+
+    if(el.gateTopTitle) el.gateTopTitle.textContent = "Morning Gate • LOCKED";
+    if(el.gateTopSub) el.gateTopSub.textContent = "ไม่เริ่มเควสแรกให้ทันก่อนหมดเวลา";
+    if(el.gateTopTime) el.gateTopTime.textContent = "LOCK";
+    if(el.gateTopOpenBtn) el.gateTopOpenBtn.textContent = "Gate";
+    return;
+  }
+
+  // ยังไม่ถึงเวลา trigger -> WAIT
+  const start = todayAtHHMM(gateCfg.triggerHHMM);
+  const now = Date.now();
+
+  if(start && now < start.getTime()){
+    hideGateCover();
+    hideGateTopBar();
+
+    if(el.gateCoverStatusChip) el.gateCoverStatusChip.textContent = "STATUS: WAIT";
+    const hh = String(start.getHours()).padStart(2,"0");
+    const mm = String(start.getMinutes()).padStart(2,"0");
+    if(el.gateCoverTime) el.gateCoverTime.textContent = `${hh}:${mm}`;
+    if(el.gateCoverHint) el.gateCoverHint.innerHTML = `Gate จะเริ่มบังคับเมื่อถึง <b>${gateCfg.triggerHHMM}</b>`;
+    return;
+  }
+
+  // เผื่อกรณีอื่นที่ไม่ active แต่ไม่ locked
+  hideGateCover();
+  hideGateTopBar();
+  return;
+}
+  } 
+    
 
 
 async function ensureNotificationPermission(){
@@ -6952,7 +7051,7 @@ async function ensureNotificationPermission(){
   if (Notification.permission === "default") {
     await Notification.requestPermission();
   }
-}
+
 
 
     if(!gate.startedAt){
@@ -9794,32 +9893,37 @@ on(el.claimProof, "input", ()=>{
   on(el.gateCoverStartBtn, "click", gateStartFromCover);
 
   // Gate top button
-  on(el.gateTopOpenBtn, "click", ()=>{
-    if(!isGateActiveToday()) return;
+on(el.gateTopOpenBtn, "click", ()=>{
+  if(!isGateActiveToday()) return;
 
-    if(gate.locked && !gate.unlocked){
-      const reason = prompt("Unlock Reason (สั้นๆ แต่จริง):", "");
-      if(reason && reason.trim()){
-        gate.unlocked = true;
-        gate.locked = false;
-        gate.unlockReason = reason.trim();
-        gate.bonusGranted = true; // unlock = ตัดโบนัส
-        saveGate();
-        gateEnforceStartButton();
-        renderGateUX();
-        showTimerWarn("Unlock ✅ (Bonus ถูกตัด)");
-      }else{
-        showTimerWarn("ต้องใส่เหตุผลก่อน");
-      }
-      return;
-    }
+  if(gate.locked && !gate.unlocked){
+    const reason = prompt("Unlock Reason (สั้นๆ แต่จริง):", "");
+    if(reason && reason.trim()){
+      gate.dateKey = localDateKey();
+      gate.unlocked = true;
+      gate.locked = false;
+      gate.passed = false;
+      gate.startedInTime = false;
+      gate.awaitingGateResult = false;
+      gate.unlockReason = reason.trim();
+      gate.bonusGranted = true; // unlock = ตัดโบนัส
 
-    if(gateIsWorldActiveNow() && !gate.passed){
-      const dl = new Date(gateWorldDeadlineTs());
-      const pad2 = n => String(n).padStart(2,"0");
-      showTimerWarn(`Deadline: ${pad2(dl.getHours())}:${pad2(dl.getMinutes())} • ต้องเริ่มก่อนหมดเวลา และทำต่อให้ครบ ${GATE_RULES.qualifyMin} นาที`);
+      saveGate("manualUnlock");
+      gateEnforceStartButton();
+      renderGateUX();
+      showTimerWarn("Unlock ✅ (Bonus ถูกตัด)");
+    }else{
+      showTimerWarn("ต้องใส่เหตุผลก่อน");
     }
-  });
+    return;
+  }
+
+  if(gateIsWorldActiveNow() && !gate.passed){
+    const dl = new Date(gateWorldDeadlineTs());
+    const pad2 = n => String(n).padStart(2,"0");
+    showTimerWarn(`Deadline: ${pad2(dl.getHours())}:${pad2(dl.getMinutes())} • ต้องเริ่มก่อนหมดเวลา และทำต่อให้ครบ ${GATE_RULES.qualifyMin} นาที`);
+  }
+});
 
   /* ===== Gate Page events (NEW) ===== */
   // Open Gate Page ONLY from top-right button
