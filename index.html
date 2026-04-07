@@ -66,24 +66,6 @@ background:
   overflow:hidden;
 }
 
-body.booting .app{
-  opacity: 0;
-}
-
-body.booting .topbar,
-body.booting .gateTopBar,
-body.booting .gateCover,
-body.booting .actionLockBar,
-body.booting .rqOverlay,
-body.booting .dataPanel,
-body.booting #authGate{
-  visibility: hidden !important;
-}
-
-body.bootDone .app{
-  opacity: 1;
-  transition: opacity .22s ease;
-}
 
  .app{
   height:100vh;
@@ -4568,7 +4550,7 @@ textarea {
 
           <div class="card">
             <div class="progressWrap">
-              <div class="badge">Today's Total: <b id="todayTotal">0.0</b> / 100</div>
+              <div class="badge">คะแนนวันนี้ <b id="todayTotal">0.0</b> / 100</div>
               <div class="miniRight">
                 <!-- <button id="historyBtn" class="secondary smallBtn" type="button">History</button> -->
                 <button id="undoBtn" class="secondary smallBtn" type="button" disabled>Undo</button>  
@@ -4706,7 +4688,7 @@ textarea {
       <!-- top bar -->
       <div class="hpHeroTopBar">
         <div class="hpHeroLeft">
-          <span class="hpHeroLabel">Total</span>
+          <span class="hpHeroLabel">คะแนนรวม</span>
         </div>
         <div class="hpHeroCenter">
           <span class="hpHeroScore" id="histTotalQps">284</span>
@@ -4774,7 +4756,7 @@ textarea {
       <div class="hpHeroMeta">
 <span class="hpFireInline">
   <span class="sqFire sm" aria-hidden="true"></span>
-  <span>Best: <b id="histBestDay">84</b></span>
+<span>Best: <b id="histBestDayHero">84</b></span>
 </span>        <span class="hpMetaDivider">/</span>
        <span>📈 Change <b id="histChangeValue">--</b></span>
         <span class="hpMetaDivider">/</span>
@@ -4897,20 +4879,20 @@ textarea {
     <div class="hpSectionLabel">Analytics</div>
     <div class="hpMiniGrid">
       <div class="hpMiniCard">
-        <div class="hpMiniLabel">Total Quests</div>
+        <div class="hpMiniLabel">จำนวนเควส</div>
         <div class="hpMiniValue" id="histTotalQuests">0</div>
       </div>
       <div class="hpMiniCard">
-        <div class="hpMiniLabel">Most Used</div>
+        <div class="hpMiniLabel">หมวดที่ใช้เยอะสุด</div>
         <div class="hpMiniValue" id="histMostUsedCategory">--</div>
       </div>
       <div class="hpMiniCard">
-        <div class="hpMiniLabel">Avg Session</div>
+        <div class="hpMiniLabel">ค่าเฉลี่ยเวลาต่อเควส</div>
         <div class="hpMiniValue" id="histAvgSession">0 min</div>
       </div>
     <div class="hpMiniCard">
-  <div class="hpMiniLabel">Selected Day</div>
-  <div class="hpMiniValue" id="histSelectedDayMini">--</div>
+  <div class="hpMiniLabel">วันที่ดีที่สุด</div>
+<div class="hpMiniValue" id="histBestDay">--</div>
 </div>
     </div>
 
@@ -6339,6 +6321,7 @@ histTotalQps: $("histTotalQps"),
 histAvgDay: $("histAvgDay"),
 histBestDay: $("histBestDay"),
 histCurrentStreak: $("histCurrentStreak"),
+
 
 histTrendChart: $("histTrendChart"),
 
@@ -11057,8 +11040,18 @@ function renderHistoryPageStub(){
   // Overview
   if(el.histTotalQps) el.histTotalQps.textContent = summary.totalQps.toFixed(1);
   if(el.histAvgDay) el.histAvgDay.textContent = summary.avgDay.toFixed(1);
-  if(el.histBestDay) el.histBestDay.textContent =
-    summary.bestDayScore > 0 ? `${summary.bestDayScore.toFixed(1)} • ${summary.bestDayKey}` : "--";
+ if(el.histBestDay){
+  if(summary.bestDayScore > 0){
+    el.histBestDay.innerHTML = `
+      ${summary.bestDayScore.toFixed(1)} คะแนน<br>
+      <span style="font-size:12px;opacity:.6">
+        ${summary.bestDayKey}
+      </span>
+    `;
+  }else{
+    el.histBestDay.textContent = "--";
+  }
+}
   if(el.histCurrentStreak) el.histCurrentStreak.textContent = String(summary.streak);
   if(el.histProductiveDays) el.histProductiveDays.textContent = String(extra.productiveDays);
 if(el.histDeadDays) el.histDeadDays.textContent = String(extra.deadDays);
@@ -11071,8 +11064,8 @@ if(el.histBestStreak) el.histBestStreak.textContent = String(extra.bestStreak);
   renderHistoryChange();
 
   // Day detail
-  if(el.histSelectedDay) el.histSelectedDay.textContent = historySelectedDay;
-  if(el.histSelectedTotal) el.histSelectedTotal.textContent = `Total: ${selectedTotal.toFixed(1)}`;
+if(el.histSelectedDay) el.histSelectedDay.textContent = historySelectedDay;
+if(el.histSelectedTotal) el.histSelectedTotal.textContent = `Total: ${selectedTotal.toFixed(1)}`;
 
   if(el.histQuestLog){
     if(!selectedLog.length){
