@@ -7629,8 +7629,13 @@ function checkAutoStop(){
   if(!targetTs) return;
 
   if(now >= targetTs){
-    forceAutoStop();
+  if(willCurrentRunHitBaseCapNow()){
+    const didSplit = splitCurrentQuestSegmentAtCap();
+    if(didSplit) return;
   }
+
+  forceAutoStop();
+}
 }
 
 function willCurrentRunHitBaseCapNow(){
@@ -9328,11 +9333,32 @@ const dateKey = state.startDateKey || localDateKey();
 const qn = normQuestName(state.questName);
 if(!qn){ showNameWarn("Quest Name ว่าง"); return; }
 
-    const used = calcQuestBaseMinutesUsed(dateKey, qn);
-    const remaining = Math.max(0, RULES.baseCapPerQuestNamePerDay - used);
-    const baseMinutesUsed = Math.min(minutes, remaining);
+const segmentsToSave = [
+  ...(Array.isArray(state.pendingSegments) ? state.pendingSegments : []),
+  {
+    chainId: state.flowChainId,
+    flowBaseName: state.flowBaseName || qn,
+    index: state.flowIndex || 1,
+    questName: qn,
+    minutes,
+    createdAt: Date.now()
+  }
+];
 
-  const baseScore = baseMinutesUsed * RULES.basePerMinute;
+let baseMinutesUsed = 0;
+
+for(const seg of segmentsToSave){
+  const segName = normQuestName(seg.questName || "");
+  if(!segName) continue;
+
+  const used = calcQuestBaseMinutesUsed(dateKey, segName);
+  const remaining = Math.max(0, RULES.baseCapPerQuestNamePerDay - used);
+  const segBaseMinutes = Math.min(Number(seg.minutes || 0), remaining);
+
+  baseMinutesUsed += segBaseMinutes;
+}
+
+const baseScore = baseMinutesUsed * RULES.basePerMinute;
 
 if(minutes < RULES.bonusMinMinutes && el.qualityBonus){
   el.qualityBonus.value = "0";
@@ -9394,6 +9420,7 @@ claimResolved: false,
       })()
       
     };
+    
 
     const all = loadAll();
 const day = ensureDay(all.days, dateKey);
@@ -9401,6 +9428,12 @@ const day = ensureDay(all.days, dateKey);
 recalcDayTotal(day);
 rememberQuestName(qn);
 saveAll(all);
+
+  state.pendingSegments = [];
+state.flowBaseName = "";
+state.flowIndex = 1;
+state.flowChainId = null;
+
 // ===== Morning Gate result resolve =====
 if(isGateActiveToday() && gate.awaitingGateResult){
   const minutesSpent = Number(entry.minutesSpent || 0);
