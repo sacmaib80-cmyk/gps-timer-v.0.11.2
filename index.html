@@ -5281,6 +5281,8 @@ let notified = false
 let notificationMode = "quiet"   // "quiet" | "smart"
 let notificationSound = true
 let smartWarnSent = false
+let sqAudioCtx = null;
+let sqAudioUnlocked = false;
 
 let historyRange = "7d";   // "3d" | "7d" | "30d" | "all"
 let historySelectedDay = null;
@@ -9199,6 +9201,7 @@ if(!isCurrentTabMasterNow()){
   async function startQuest(){
 
   if(state.status !== "idle") return;
+  ensureQuestAudioReady();
 
   const okMaster = acquireMasterTab();
   if(!okMaster){
@@ -11331,7 +11334,9 @@ async function sendQuestDoneNotification(questSnapshot){
       }
     });
 
-    console.log("[QUEST-NOTI] showNotification sent");
+        console.log("[QUEST-NOTI] showNotification sent");
+
+    playQuestDoneSound();
 
     notified = true;
     console.log("[QUEST-NOTI] success: notified=true");
@@ -11450,18 +11455,22 @@ function playQuestDoneSound(){
   if(!notificationSound) return;
 
   try{
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if(!AudioCtx) return;
+    const ctx = ensureQuestAudioReady();
+    if(!ctx) return;
 
-    const ctx = new AudioCtx();
+    if(ctx.state !== "running"){
+      console.warn("[SOUND] skipped: audio context not running");
+      return;
+    }
+
     const master = ctx.createGain();
     master.gain.setValueAtTime(0.18, ctx.currentTime);
     master.connect(ctx.destination);
 
     const notes = [
-      { freq: 523.25, start: 0.00, dur: 0.12 }, // C5
-      { freq: 659.25, start: 0.10, dur: 0.12 }, // E5
-      { freq: 783.99, start: 0.20, dur: 0.16 }  // G5
+      { freq: 523.25, start: 0.00, dur: 0.12 },
+      { freq: 659.25, start: 0.10, dur: 0.12 },
+      { freq: 783.99, start: 0.20, dur: 0.16 }
     ];
 
     notes.forEach(note => {
@@ -11482,15 +11491,40 @@ function playQuestDoneSound(){
       osc.stop(ctx.currentTime + note.start + note.dur + 0.02);
     });
 
+    setTimeout(() => {
+      try{
+        master.disconnect();
+      }catch{}
+    }, 600);
+
   }catch(err){
-    console.error("Sound error:", err);
+    console.error("[SOUND] play error:", err);
   }
 }
 
 window.addEventListener("beforeunload", ()=>{
   clearMasterTab();
 });
+function ensureQuestAudioReady(){
+  try{
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if(!AudioCtx) return null;
 
+    if(!sqAudioCtx){
+      sqAudioCtx = new AudioCtx();
+    }
+
+    if(sqAudioCtx.state === "suspended"){
+      sqAudioCtx.resume().catch(() => {});
+    }
+
+    sqAudioUnlocked = true;
+    return sqAudioCtx;
+  }catch(err){
+    console.error("[SOUND] init error:", err);
+    return null;
+  }
+}
 /* =========================================
    HISTORY MAIN
 ========================================= */
